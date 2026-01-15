@@ -1,19 +1,62 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Phaser from 'phaser';
 import { useGameStore } from '../stores/gameStore';
-import { connectSocket, disconnectSocket } from '../services/socket';
+import { useBattleStore } from '../stores/battleStore';
+import { connectSocket, disconnectSocket, getSocket } from '../services/socket';
 import { MainScene } from '../game/scenes/MainScene';
 import { BattleScene } from '../game/scenes/BattleScene';
 import GameUI from '../components/GameUI';
+import BattleOverlay from '../components/battle/BattleOverlay';
 
 export default function GamePage() {
   const gameRef = useRef<Phaser.Game | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const character = useGameStore((state) => state.character);
+  const [isInBattle, setIsInBattle] = useState(false);
+  const battlePhase = useBattleStore((state) => state.phase);
+
+  // Handle battle exit
+  const handleExitBattle = useCallback(() => {
+    setIsInBattle(false);
+    if (gameRef.current) {
+      const scene = gameRef.current.scene.getScene('BattleScene');
+      if (scene?.scene.isActive()) {
+        gameRef.current.scene.switch('BattleScene', 'MainScene');
+      }
+    }
+  }, []);
 
   useEffect(() => {
     // Connect socket
-    connectSocket();
+    const socket = connectSocket();
+
+    // Setup battle store with socket
+    if (socket) {
+      useBattleStore.getState().setSocket(socket);
+
+      // Listen for battle start events
+      socket.on('battle:started', (data) => {
+        setIsInBattle(true);
+
+        // Initialize battle store
+        useBattleStore.getState().initBattle({
+          battleId: data.battleId,
+          stageId: data.stageId,
+          units: data.units,
+          turnOrder: data.turnOrder,
+        });
+
+        // Switch to battle scene
+        if (gameRef.current) {
+          gameRef.current.scene.start('BattleScene', {
+            stageId: data.stageId,
+            battleId: data.battleId,
+            units: data.units,
+            turnOrder: data.turnOrder,
+          });
+        }
+      });
+    }
 
     // Initialize Phaser game
     if (containerRef.current && !gameRef.current) {
@@ -48,6 +91,13 @@ export default function GamePage() {
     };
   }, []);
 
+  // Track battle state
+  useEffect(() => {
+    if (battlePhase !== 'idle' && battlePhase !== 'loading') {
+      setIsInBattle(true);
+    }
+  }, [battlePhase]);
+
   if (!character) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -67,6 +117,9 @@ export default function GamePage() {
           </div>
           <div className="flex items-center gap-4">
             <span className="text-yellow-400">{character.gold.toLocaleString()} G</span>
+            {isInBattle && (
+              <span className="text-red-400 animate-pulse">전투 중</span>
+            )}
           </div>
         </div>
       </header>
@@ -79,7 +132,12 @@ export default function GamePage() {
             ref={containerRef}
             className="rounded-lg overflow-hidden shadow-2xl"
           />
-          <GameUI />
+
+          {/* Game UI Overlay (when not in battle) */}
+          {!isInBattle && <GameUI />}
+
+          {/* Battle UI Overlay (when in battle) */}
+          {isInBattle && <BattleOverlay onExitBattle={handleExitBattle} />}
         </div>
       </main>
     </div>
