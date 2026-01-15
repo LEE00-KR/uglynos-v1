@@ -222,7 +222,7 @@ export class DamageCalculator {
    */
   calculateHeal(healer: BattleUnit, healRatio: number): number {
     // Heal based on INT stat
-    const baseHeal = healer.stats.atk * (healRatio / 100);
+    const baseHeal = healer.stats.int * (healRatio / 100);
     return Math.floor(baseHeal);
   }
 }

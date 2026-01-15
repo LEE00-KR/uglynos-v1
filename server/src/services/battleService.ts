@@ -145,6 +145,7 @@ class BattleService {
         def: charStats.def,
         spd: charStats.spd,
         eva: charStats.eva,
+        int: character.stat_int,
       },
       element: {
         primary: character.element_primary as ElementType,
@@ -185,6 +186,7 @@ class BattleService {
           def: petStats.def,
           spd: petStats.spd,
           eva: petStats.eva,
+          int: pet.stat_int,
         },
         element: {
           primary: pet.pet_templates.element_primary as ElementType,
@@ -229,6 +231,7 @@ class BattleService {
               def: m.base_con + m.growth_con * (lvl - 1),
               spd: m.base_agi + m.growth_agi * (lvl - 1),
               eva: m.base_agi * 0.2,
+              int: m.base_int + (m.growth_int || 0) * (lvl - 1),
             },
             element: {
               primary: m.element_primary as ElementType,
@@ -661,6 +664,14 @@ class BattleService {
     const enemies = Array.from(state.units.values()).filter(
       (u) => u.type === 'enemy' && u.isAlive
     );
+
+    // Guard against division by zero when all enemies are dead
+    if (enemies.length === 0) {
+      state.phase = 'victory';
+      await this.saveBattleState(battleId, state);
+      return { success: true, battleState: this.serializeBattleState(state) };
+    }
+
     const avgEnemySpd = enemies.reduce((s, e) => s + e.stats.spd, 0) / enemies.length;
     const fleeChance = Math.max(
       10,

@@ -25,6 +25,10 @@ export const getShop = async (
 ): Promise<void> => {
   try {
     const shopId = parseInt(req.params.shopId);
+    if (isNaN(shopId) || shopId <= 0) {
+      res.status(400).json({ success: false, message: '유효하지 않은 상점 ID입니다' });
+      return;
+    }
     const shop = await shopService.getShop(shopId);
     res.json({ success: true, data: shop });
   } catch (error) {
@@ -40,6 +44,10 @@ export const getShopItems = async (
 ): Promise<void> => {
   try {
     const shopId = parseInt(req.params.shopId);
+    if (isNaN(shopId) || shopId <= 0) {
+      res.status(400).json({ success: false, message: '유효하지 않은 상점 ID입니다' });
+      return;
+    }
     const characterId = req.characterId;
 
     // 캐릭터 레벨 조회
@@ -78,7 +86,23 @@ export const buyItem = async (
       return;
     }
 
-    const result = await shopService.buyItem(characterId, shopId, itemTemplateId, quantity);
+    if (isNaN(shopId) || shopId <= 0) {
+      res.status(400).json({ success: false, message: '유효하지 않은 상점 ID입니다' });
+      return;
+    }
+
+    if (!itemTemplateId || typeof itemTemplateId !== 'number' || itemTemplateId <= 0) {
+      res.status(400).json({ success: false, message: '유효하지 않은 아이템입니다' });
+      return;
+    }
+
+    const parsedQuantity = Number(quantity);
+    if (!Number.isInteger(parsedQuantity) || parsedQuantity <= 0 || parsedQuantity > 99) {
+      res.status(400).json({ success: false, message: '수량은 1-99 사이의 정수여야 합니다' });
+      return;
+    }
+
+    const result = await shopService.buyItem(characterId, shopId, itemTemplateId, parsedQuantity);
     res.json({
       success: true,
       data: result,
@@ -111,6 +135,10 @@ export const getNPC = async (
 ): Promise<void> => {
   try {
     const npcId = parseInt(req.params.npcId);
+    if (isNaN(npcId) || npcId <= 0) {
+      res.status(400).json({ success: false, message: '유효하지 않은 NPC ID입니다' });
+      return;
+    }
     const npc = await shopService.getNPC(npcId);
     res.json({ success: true, data: npc });
   } catch (error) {

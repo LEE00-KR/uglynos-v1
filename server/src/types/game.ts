@@ -73,6 +73,7 @@ export interface BattleUnit {
     def: number;
     spd: number;
     eva: number;
+    int: number;
   };
   element: ElementInfo;
   statusEffects: StatusEffect[];

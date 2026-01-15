@@ -225,7 +225,13 @@ export class StatusEffectManager {
 
     const roll = Math.random();
     if (roll < 0.33) return unit.id; // Self
-    if (roll < 0.66) return enemies[Math.floor(Math.random() * enemies.length)];
+    if (roll < 0.66) {
+      // Guard against empty enemies array
+      if (enemies.length === 0) return unit.id;
+      return enemies[Math.floor(Math.random() * enemies.length)];
+    }
+    // Guard against empty allies array
+    if (allies.length === 0) return unit.id;
     return allies[Math.floor(Math.random() * allies.length)];
   }
 
