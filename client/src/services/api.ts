@@ -108,3 +108,27 @@ export const stageApi = {
   get: (id: number) => api.get(`/stages/${id}`),
   getProgress: (id: number) => api.get(`/stages/${id}/progress`),
 };
+
+// Inventory API
+export const inventoryApi = {
+  getAll: () => api.get('/inventory'),
+  getEquipped: () => api.get('/inventory/equipped'),
+  equip: (inventoryId: string) => api.post(`/inventory/${inventoryId}/equip`),
+  unequip: (inventoryId: string) => api.post(`/inventory/${inventoryId}/unequip`),
+  use: (inventoryId: string) => api.post(`/inventory/${inventoryId}/use`),
+  sell: (inventoryId: string, quantity?: number) =>
+    api.post(`/inventory/${inventoryId}/sell`, { quantity }),
+  discard: (inventoryId: string, quantity?: number) =>
+    api.delete(`/inventory/${inventoryId}`, { data: { quantity } }),
+};
+
+// Shop API
+export const shopApi = {
+  getAll: () => api.get('/shops'),
+  get: (shopId: number) => api.get(`/shops/${shopId}`),
+  getItems: (shopId: number) => api.get(`/shops/${shopId}/items`),
+  buy: (shopId: number, itemTemplateId: number, quantity?: number) =>
+    api.post(`/shops/${shopId}/buy`, { itemTemplateId, quantity }),
+  getNPCs: () => api.get('/shops/npcs/all'),
+  getNPC: (npcId: number) => api.get(`/shops/npcs/${npcId}`),
+};

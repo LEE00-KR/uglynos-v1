@@ -58,3 +58,14 @@ export const requireCharacter = (
   }
   next();
 };
+
+// Alias for requireCharacter - use when character context is needed but not strictly required
+export const withCharacter = (
+  _req: AuthRequest,
+  _res: Response,
+  next: NextFunction
+): void => {
+  // Character ID is already set by authenticate middleware if available in token
+  // This just passes through - character ID may or may not be present
+  next();
+};
