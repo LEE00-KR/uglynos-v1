@@ -22,9 +22,9 @@ app.use(helmet({
   },
 }));
 
-// CORS
+// CORS - 개발 환경에서는 모든 origin 허용 (모바일 테스트용)
 const corsOptions = {
-  origin: env.CORS_ORIGIN.split(','),
+  origin: env.NODE_ENV === 'development' ? true : env.CORS_ORIGIN.split(','),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],

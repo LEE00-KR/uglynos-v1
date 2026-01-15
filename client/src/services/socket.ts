@@ -10,7 +10,9 @@ export const connectSocket = (): Socket => {
 
   const token = useAuthStore.getState().accessToken;
 
-  const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  // 현재 호스트 기반으로 서버 URL 동적 설정 (모바일 접속 지원)
+  const serverUrl = import.meta.env.VITE_API_URL ||
+    `${window.location.protocol}//${window.location.hostname}:3000`;
 
   socket = io(serverUrl, {
     auth: { token },
