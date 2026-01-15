@@ -10,7 +10,9 @@ export const connectSocket = (): Socket => {
 
   const token = useAuthStore.getState().accessToken;
 
-  socket = io('/', {
+  const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+  socket = io(serverUrl, {
     auth: { token },
     transports: ['websocket'],
     reconnection: true,
