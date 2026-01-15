@@ -204,8 +204,6 @@ export const useBattleStore = create<BattleState & BattleActions>((set, get) => 
   },
 
   selectAction: (action) => {
-    const state = get();
-
     // Check if action needs target selection
     const needsTarget = ['attack', 'magic', 'capture'].includes(action.type);
 
@@ -360,24 +358,24 @@ export const useBattleStore = create<BattleState & BattleActions>((set, get) => 
       isSubmitting: false,
     });
 
-    const messages = [];
+    const newMessages: string[] = [];
     if (result === 'victory') {
-      messages.push('전투 승리!');
+      newMessages.push('전투 승리!');
       if (rewards) {
-        messages.push(`획득 골드: ${rewards.gold}`);
+        newMessages.push(`획득 골드: ${rewards.gold}`);
         rewards.exp.forEach(exp => {
-          messages.push(`EXP +${exp.exp}`);
+          newMessages.push(`EXP +${exp.exp}`);
         });
-        messages.push(`★ ${rewards.stars}개 획득!`);
+        newMessages.push(`★ ${rewards.stars}개 획득!`);
       }
     } else if (result === 'defeat') {
-      messages.push('전투 패배...');
+      newMessages.push('전투 패배...');
     } else if (result === 'fled') {
-      messages.push('도망쳤다!');
+      newMessages.push('도망쳤다!');
     }
 
     set(state => ({
-      actionMessages: [...state.actionMessages, ...messages],
+      actionMessages: [...state.actionMessages, ...newMessages],
     }));
   },
 

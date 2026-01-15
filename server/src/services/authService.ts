@@ -91,13 +91,13 @@ function generateTokens(userId: string) {
   const accessToken = jwt.sign(
     { userId },
     env.JWT_SECRET,
-    { expiresIn: env.JWT_EXPIRES_IN }
+    { expiresIn: env.JWT_EXPIRES_IN } as jwt.SignOptions
   );
 
   const refreshToken = jwt.sign(
     { userId, type: 'refresh' },
     env.JWT_SECRET,
-    { expiresIn: '30d' }
+    { expiresIn: '30d' } as jwt.SignOptions
   );
 
   return { accessToken, refreshToken };

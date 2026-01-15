@@ -1,4 +1,4 @@
-import type { BattleUnit, StatusEffectType, StatusEffect, ElementType } from '../../types/game.js';
+import type { BattleUnit, StatusEffectType, ElementType } from '../../types/game.js';
 
 interface StatusEffectResult {
   type: StatusEffectType;

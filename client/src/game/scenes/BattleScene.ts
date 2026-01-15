@@ -20,10 +20,8 @@ interface UnitSprite {
 
 export class BattleScene extends Phaser.Scene {
   private stageId: number = 0;
-  private battleId: string = '';
   private unitSprites: Map<string, UnitSprite> = new Map();
   private turnIndicator!: Phaser.GameObjects.Text;
-  private damageTexts: Phaser.GameObjects.Text[] = [];
 
   // Unit positions
   private allyPositions = [
@@ -48,7 +46,6 @@ export class BattleScene extends Phaser.Scene {
 
   init(data: BattleSceneData) {
     this.stageId = data.stageId;
-    this.battleId = data.battleId || '';
 
     // Initialize battle store if data provided
     if (data.battleId && data.units) {
@@ -63,7 +60,6 @@ export class BattleScene extends Phaser.Scene {
 
   create() {
     this.unitSprites.clear();
-    this.damageTexts = [];
 
     // Background gradient
     const bg = this.add.graphics();
@@ -126,7 +122,7 @@ export class BattleScene extends Phaser.Scene {
     let allyIndex = 0;
     let enemyIndex = 0;
 
-    state.units.forEach((unit, unitId) => {
+    state.units.forEach((unit) => {
       if (unit.type === 'enemy') {
         const pos = this.enemyPositions[enemyIndex] || this.enemyPositions[0];
         this.createUnitSprite(unit, pos.x, pos.y, true);

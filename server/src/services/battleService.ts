@@ -14,7 +14,6 @@ import type {
   BattleUnit,
   BattleAction,
   ElementType,
-  StatusEffect,
   BattleRewards,
 } from '../types/game.js';
 
@@ -428,7 +427,9 @@ class BattleService {
       defeatedUnits,
       capturedPet,
       battleEnded: battleState.phase !== 'in_progress',
-      result: battleState.phase !== 'in_progress' ? battleState.phase : undefined,
+      result: (['victory', 'defeat', 'fled'] as const).includes(battleState.phase as 'victory' | 'defeat' | 'fled')
+        ? (battleState.phase as 'victory' | 'defeat' | 'fled')
+        : undefined,
       rewards,
     };
   }

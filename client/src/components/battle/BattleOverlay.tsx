@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useBattleStore } from '../../stores/battleStore';
 import BattleHUD from './BattleHUD';
 import BattleActionMenu from './BattleActionMenu';

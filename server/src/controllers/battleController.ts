@@ -16,7 +16,30 @@ export const startBattle = async (req: AuthRequest, res: Response, next: NextFun
 export const submitAction = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const input: BattleActionInput = req.body;
-    const result = await battleService.submitAction(req.characterId!, input);
+
+    // Submit character action
+    await battleService.submitAction(req.characterId!, {
+      battleId: input.battleId,
+      actorId: req.characterId!,
+      type: input.characterAction.type,
+      targetId: input.characterAction.targetId,
+      spellId: input.characterAction.spellId,
+      itemId: input.characterAction.itemId,
+    });
+
+    // Submit pet actions
+    for (const petAction of input.petActions) {
+      await battleService.submitAction(req.characterId!, {
+        battleId: input.battleId,
+        actorId: petAction.petId,
+        type: 'attack',
+        targetId: petAction.targetId,
+        skillId: petAction.skillId,
+      });
+    }
+
+    // Process turn
+    const result = await battleService.processTurn(input.battleId);
     res.json({ success: true, data: result });
   } catch (error) {
     next(error);

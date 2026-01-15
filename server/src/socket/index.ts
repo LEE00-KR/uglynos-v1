@@ -88,7 +88,7 @@ export const setupSocket = (io: Server) => {
   });
 };
 
-async function handleBattleStart(io: Server, socket: Socket, data: BattleStartData) {
+async function handleBattleStart(_io: Server, socket: Socket, data: BattleStartData) {
   try {
     const characterId = socket.data.characterId;
     if (!characterId) {
@@ -222,7 +222,7 @@ function handleBattleJoin(socket: Socket, data: BattleJoinData) {
   }
 }
 
-async function handlePartyCreate(io: Server, socket: Socket, _data: unknown) {
+async function handlePartyCreate(_io: Server, socket: Socket, _data: unknown) {
   try {
     const characterId = socket.data.characterId;
     if (!characterId) {

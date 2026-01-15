@@ -18,14 +18,15 @@ export const authenticate = (
   req: AuthRequest,
   res: Response,
   next: NextFunction
-) => {
+): void => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({
+    res.status(401).json({
       success: false,
       error: { code: 'UNAUTHORIZED', message: 'No token provided' },
     });
+    return;
   }
 
   const token = authHeader.split(' ')[1];
@@ -36,7 +37,7 @@ export const authenticate = (
     req.characterId = decoded.characterId;
     next();
   } catch {
-    return res.status(401).json({
+    res.status(401).json({
       success: false,
       error: { code: 'UNAUTHORIZED', message: 'Invalid token' },
     });
@@ -47,12 +48,13 @@ export const requireCharacter = (
   req: AuthRequest,
   res: Response,
   next: NextFunction
-) => {
+): void => {
   if (!req.characterId) {
-    return res.status(403).json({
+    res.status(403).json({
       success: false,
       error: { code: 'FORBIDDEN', message: 'Character required' },
     });
+    return;
   }
   next();
 };

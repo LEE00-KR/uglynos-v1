@@ -1,6 +1,6 @@
 import React from 'react';
 import { useBattleStore, selectAllies, selectEnemies } from '../../stores/battleStore';
-import type { BattleUnit, StatusEffect } from '../../stores/battleStore';
+import type { BattleUnit } from '../../stores/battleStore';
 
 // Status effect icons and colors
 const statusConfig: Record<string, { icon: string; color: string; name: string }> = {

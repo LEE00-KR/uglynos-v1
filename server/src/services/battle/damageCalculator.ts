@@ -4,8 +4,8 @@ import type {
   EquipmentInfo,
   DamageResult,
   ElementType,
-  StatusEffect,
 } from '../../types/game.js';
+import type { StatusEffect } from '../../types/game.js';
 
 interface DamageOptions {
   weaponInfo?: EquipmentInfo;
@@ -196,7 +196,7 @@ export class DamageCalculator {
    * Hit/Evasion check
    */
   calculateHit(
-    attacker: BattleUnit,
+    _attacker: BattleUnit,
     defender: BattleUnit,
     weaponAccuracy: number = 100
   ): { hit: boolean; evaded: boolean } {

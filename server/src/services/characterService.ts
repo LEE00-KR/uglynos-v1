@@ -94,7 +94,7 @@ export const selectCharacter = async (characterId: string, userId: string) => {
   const accessToken = jwt.sign(
     { userId, characterId: character.id },
     env.JWT_SECRET,
-    { expiresIn: env.JWT_EXPIRES_IN }
+    { expiresIn: env.JWT_EXPIRES_IN } as jwt.SignOptions
   );
 
   return { accessToken, character };

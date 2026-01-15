@@ -84,7 +84,6 @@ const BattleActionMenu: React.FC = () => {
     showItemMenu,
     selectedAction,
     pendingActions,
-    units,
     selectAction,
     selectTarget,
     cancelAction,

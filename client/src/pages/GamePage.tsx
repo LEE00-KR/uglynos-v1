@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import Phaser from 'phaser';
 import { useGameStore } from '../stores/gameStore';
 import { useBattleStore } from '../stores/battleStore';
-import { connectSocket, disconnectSocket, getSocket } from '../services/socket';
+import { connectSocket, disconnectSocket } from '../services/socket';
 import { MainScene } from '../game/scenes/MainScene';
 import { BattleScene } from '../game/scenes/BattleScene';
 import GameUI from '../components/GameUI';

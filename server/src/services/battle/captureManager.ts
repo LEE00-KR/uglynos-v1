@@ -1,4 +1,4 @@
-import type { BattleUnit, BaseStats } from '../../types/game.js';
+import type { BattleUnit } from '../../types/game.js';
 
 interface CaptureItem {
   catchBonus: number;
@@ -41,7 +41,7 @@ export class CaptureManager {
    */
   tryCatch(
     target: BattleUnit,
-    catcher: BattleUnit,
+    _catcher: BattleUnit,
     captureItem?: CaptureItem
   ): CaptureResult {
     // Only level 1 capturable pets
@@ -103,13 +103,13 @@ export class CaptureManager {
    * Generate random pet stats
    * Each stat: 5 + (0~5) random
    */
-  private generateRandomStats(): BaseStats {
+  private generateRandomStats() {
     return {
-      str: 5 + Math.floor(Math.random() * 6),
-      agi: 5 + Math.floor(Math.random() * 6),
-      vit: 5 + Math.floor(Math.random() * 6),
-      con: 5 + Math.floor(Math.random() * 6),
-      int: 5 + Math.floor(Math.random() * 6),
+      stat_str: 5 + Math.floor(Math.random() * 6),
+      stat_agi: 5 + Math.floor(Math.random() * 6),
+      stat_vit: 5 + Math.floor(Math.random() * 6),
+      stat_con: 5 + Math.floor(Math.random() * 6),
+      stat_int: 5 + Math.floor(Math.random() * 6),
     };
   }
 
