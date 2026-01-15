@@ -9,7 +9,7 @@ const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
   cors: {
-    origin: env.CORS_ORIGIN.split(','),
+    origin: env.NODE_ENV === 'development' ? true : env.CORS_ORIGIN.split(','),
     methods: ['GET', 'POST'],
     credentials: true,
   },

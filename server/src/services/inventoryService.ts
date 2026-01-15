@@ -267,7 +267,7 @@ class InventoryService {
     }
 
     // 효과 적용
-    let effectResult = { effect: template.effect_type || '', value: template.effect_value };
+    const effectResult = { effect: template.effect_type || '', value: template.effect_value };
 
     if (template.effect_type === 'heal_hp') {
       // HP 회복은 전투 중이 아닐 때만

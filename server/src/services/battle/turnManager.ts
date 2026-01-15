@@ -11,7 +11,8 @@ export class TurnManager {
       if (a.stats.spd !== b.stats.spd) {
         return b.stats.spd - a.stats.spd;
       }
-      return Math.random() - 0.5;
+      // Deterministic tie-breaker using unit ID
+      return a.id.localeCompare(b.id);
     });
 
     return sorted.map((u) => u.id);

@@ -15,7 +15,7 @@ export default function InventoryModal({ onClose }: InventoryModalProps) {
     fetchEquipped,
     equipItem,
     unequipItem,
-    useItem,
+    consumeItem,
     sellItem,
     discardItem,
     isLoading,
@@ -63,7 +63,7 @@ export default function InventoryModal({ onClose }: InventoryModalProps) {
   const handleUse = async () => {
     if (!selectedItem) return;
     try {
-      const result = await useItem(selectedItem.id);
+      const result = await consumeItem(selectedItem.id);
       showMessage(`${result.effect === 'heal_hp' ? 'HP' : 'MP'} +${result.value} 회복!`);
       setSelectedItem(null);
     } catch {

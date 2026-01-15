@@ -10,6 +10,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: true, // 모바일/네트워크 접속 허용
     port: 5173,
     proxy: {
       '/api': {

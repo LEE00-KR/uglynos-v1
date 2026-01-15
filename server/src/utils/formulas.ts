@@ -94,9 +94,10 @@ export const getWeaponHitCount = (
       return 2;
     case 'claw':
       return 3;
-    case 'bow':
+    case 'bow': {
       const max = enemyCount || 1;
       return Math.floor(Math.random() * max) + 1;
+    }
     default:
       return 1;
   }

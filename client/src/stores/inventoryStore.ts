@@ -75,7 +75,7 @@ interface InventoryState {
   fetchEquipped: () => Promise<void>;
   equipItem: (inventoryId: string) => Promise<void>;
   unequipItem: (inventoryId: string) => Promise<void>;
-  useItem: (inventoryId: string) => Promise<{ effect: string; value: number }>;
+  consumeItem: (inventoryId: string) => Promise<{ effect: string; value: number }>;
   sellItem: (inventoryId: string, quantity?: number) => Promise<number>;
   discardItem: (inventoryId: string, quantity?: number) => Promise<void>;
 
@@ -136,7 +136,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     }
   },
 
-  useItem: async (inventoryId: string) => {
+  consumeItem: async (inventoryId: string) => {
     set({ isLoading: true, error: null });
     try {
       const response = await inventoryApi.use(inventoryId);

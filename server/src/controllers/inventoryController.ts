@@ -124,7 +124,13 @@ export const sellItem = async (
       return;
     }
 
-    const result = await inventoryService.sellItem(characterId, inventoryId, quantity);
+    const parsedQuantity = Number(quantity);
+    if (!Number.isInteger(parsedQuantity) || parsedQuantity <= 0 || parsedQuantity > 99) {
+      res.status(400).json({ success: false, message: '수량은 1-99 사이의 정수여야 합니다' });
+      return;
+    }
+
+    const result = await inventoryService.sellItem(characterId, inventoryId, parsedQuantity);
     res.json({
       success: true,
       data: result,
@@ -151,7 +157,13 @@ export const discardItem = async (
       return;
     }
 
-    await inventoryService.removeItem(characterId, inventoryId, quantity);
+    const parsedQuantity = Number(quantity);
+    if (!Number.isInteger(parsedQuantity) || parsedQuantity <= 0 || parsedQuantity > 99) {
+      res.status(400).json({ success: false, message: '수량은 1-99 사이의 정수여야 합니다' });
+      return;
+    }
+
+    await inventoryService.removeItem(characterId, inventoryId, parsedQuantity);
     res.json({ success: true, message: '아이템을 버렸습니다' });
   } catch (error) {
     next(error);
