@@ -9,6 +9,9 @@ import routes from './routes/index.js';
 
 const app = express();
 
+// Trust proxy for Railway/Render/etc (required for rate limiting behind reverse proxy)
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(helmet({
   contentSecurityPolicy: {
