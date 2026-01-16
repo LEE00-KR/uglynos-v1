@@ -12,22 +12,20 @@ export interface ElementConfig {
 }
 
 // =====================================================
-// Pet Types
+// Pet Types (4스텟: 체력, 공격력, 방어력, 순발력)
 // =====================================================
 export interface AdminPetBaseStats {
-  str: number;  // 1-100
-  agi: number;  // 1-100
-  vit: number;  // 1-100
-  con: number;  // 1-100
-  int: number;  // 1-100
+  hp: number;   // 체력 (1-999)
+  atk: number;  // 공격력 (1-100)
+  def: number;  // 방어력 (1-100)
+  spd: number;  // 순발력 (1-100)
 }
 
 export interface AdminPetGrowthRates {
-  str: number;  // 1.00-3.00
-  agi: number;  // 1.00-3.00
-  vit: number;  // 1.00-3.00
-  con: number;  // 1.00-3.00
-  int: number;  // 1.00-3.00
+  hp: number;   // 1.00-3.00
+  atk: number;  // 1.00-3.00
+  def: number;  // 1.00-3.00
+  spd: number;  // 1.00-3.00
 }
 
 export interface AdminPetSprites {
@@ -111,11 +109,10 @@ export interface AdminStageGroup {
 // Individual Stage Types (PRD 방식)
 // =====================================================
 export interface MonsterStats {
-  str: number;
-  agi: number;
-  vit: number;
-  con: number;
-  int: number;
+  hp: number;   // 체력
+  atk: number;  // 공격력
+  def: number;  // 방어력
+  spd: number;  // 순발력
 }
 
 export interface StageMonster {

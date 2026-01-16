@@ -8,8 +8,8 @@ const defaultPet: Omit<AdminPet, 'createdAt' | 'updatedAt'> = {
   id: '',
   name: '',
   element: { primary: 'earth', secondary: null, primaryRatio: 100 },
-  baseStats: { str: 10, agi: 10, vit: 10, con: 10, int: 10 },
-  growthRates: { str: 1.50, agi: 1.50, vit: 1.50, con: 1.50, int: 1.50 },
+  baseStats: { hp: 100, atk: 10, def: 10, spd: 10 },
+  growthRates: { hp: 1.50, atk: 1.50, def: 1.50, spd: 1.50 },
   sprites: { idle: '', attack: '', hit: '', defend: '', down: '', walk: '' },
   skills: [],
 };
@@ -143,6 +143,18 @@ export default function PetManagePage() {
     });
   };
 
+  const handleSpriteFileUpload = (motion: keyof AdminPetSprites, file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      setFormData({
+        ...formData,
+        sprites: { ...formData.sprites, [motion]: base64 },
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSkillToggle = (skillId: string) => {
     const newSkills = formData.skills.includes(skillId)
       ? formData.skills.filter((id) => id !== skillId)
@@ -150,7 +162,7 @@ export default function PetManagePage() {
     setFormData({ ...formData, skills: newSkills });
   };
 
-  const totalGrowthRate = formData.growthRates.str + formData.growthRates.agi + formData.growthRates.vit + formData.growthRates.con + formData.growthRates.int;
+  const totalGrowthRate = formData.growthRates.hp + formData.growthRates.atk + formData.growthRates.def + formData.growthRates.spd;
 
   return (
     <div className="p-8">
@@ -349,8 +361,8 @@ export default function PetManagePage() {
 
                 {/* Base Stats */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-4">기본 스텟 (1-100)</label>
-                  <div className="grid grid-cols-5 gap-3">
+                  <label className="block text-sm font-medium text-gray-300 mb-4">기본 스텟 (HP: 1-999, 그 외: 1-100)</label>
+                  <div className="grid grid-cols-4 gap-3">
                     {STATS.map((stat) => (
                       <div key={stat}>
                         <label className="block text-xs text-gray-400 mb-1">{STAT_LABELS[stat]}</label>
@@ -372,11 +384,11 @@ export default function PetManagePage() {
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <label className="block text-sm font-medium text-gray-300">성장률 (1.00-3.00)</label>
-                    <span className={`text-sm ${totalGrowthRate >= 5 && totalGrowthRate <= 15 ? 'text-green-400' : 'text-red-400'}`}>
-                      전체 성장률: {totalGrowthRate.toFixed(2)} (5.00~15.00)
+                    <span className={`text-sm ${totalGrowthRate >= 4 && totalGrowthRate <= 12 ? 'text-green-400' : 'text-red-400'}`}>
+                      전체 성장률: {totalGrowthRate.toFixed(2)} (4.00~12.00)
                     </span>
                   </div>
-                  <div className="grid grid-cols-5 gap-3">
+                  <div className="grid grid-cols-4 gap-3">
                     {STATS.map((stat) => (
                       <div key={stat}>
                         <label className="block text-xs text-gray-400 mb-1">{STAT_LABELS[stat]}</label>
@@ -400,15 +412,49 @@ export default function PetManagePage() {
                   <label className="block text-sm font-medium text-gray-300 mb-4">스프라이트 이미지</label>
                   <div className="grid grid-cols-3 gap-4">
                     {(['idle', 'attack', 'hit', 'defend', 'down', 'walk'] as const).map((motion) => (
-                      <div key={motion}>
-                        <label className="block text-xs text-gray-400 mb-1 capitalize">{motion}</label>
+                      <div key={motion} className="space-y-2">
+                        <label className="block text-xs text-gray-400 capitalize">{motion}</label>
+                        {/* Preview */}
+                        <div className="w-full h-24 bg-gray-700 border border-gray-600 rounded-lg flex items-center justify-center overflow-hidden">
+                          {formData.sprites[motion] ? (
+                            <img
+                              src={formData.sprites[motion]}
+                              alt={motion}
+                              className="max-w-full max-h-full object-contain"
+                            />
+                          ) : (
+                            <span className="text-gray-500 text-xs">미리보기</span>
+                          )}
+                        </div>
+                        {/* File Upload */}
+                        {isEditing && (
+                          <label className="block">
+                            <span className="sr-only">파일 선택</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleSpriteFileUpload(motion, file);
+                              }}
+                              className="block w-full text-xs text-gray-400
+                                file:mr-2 file:py-1 file:px-3
+                                file:rounded file:border-0
+                                file:text-xs file:font-medium
+                                file:bg-primary-600 file:text-white
+                                hover:file:bg-primary-700
+                                file:cursor-pointer cursor-pointer"
+                            />
+                          </label>
+                        )}
+                        {/* URL Input */}
                         <input
                           type="text"
                           value={formData.sprites[motion]}
                           onChange={(e) => handleSpriteChange(motion, e.target.value)}
                           disabled={!isEditing}
-                          placeholder="이미지 URL"
-                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-400 disabled:opacity-50"
+                          placeholder="또는 URL 입력"
+                          className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs placeholder-gray-400 disabled:opacity-50"
                         />
                       </div>
                     ))}

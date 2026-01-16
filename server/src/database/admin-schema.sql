@@ -30,27 +30,25 @@ CREATE TABLE IF NOT EXISTS admin_pets (
   element_secondary VARCHAR(20) CHECK (element_secondary IN ('earth', 'water', 'fire', 'wind', NULL)),
   element_primary_ratio INTEGER DEFAULT 100 CHECK (element_primary_ratio >= 0 AND element_primary_ratio <= 100),
 
-  -- 기본 스텟 (5스텟 시스템)
-  base_str INTEGER NOT NULL DEFAULT 10 CHECK (base_str >= 1 AND base_str <= 100),
-  base_agi INTEGER NOT NULL DEFAULT 10 CHECK (base_agi >= 1 AND base_agi <= 100),
-  base_vit INTEGER NOT NULL DEFAULT 10 CHECK (base_vit >= 1 AND base_vit <= 100),
-  base_con INTEGER NOT NULL DEFAULT 10 CHECK (base_con >= 1 AND base_con <= 100),
-  base_int INTEGER NOT NULL DEFAULT 10 CHECK (base_int >= 1 AND base_int <= 100),
+  -- 기본 스텟 (4스텟 시스템: 체력/공격력/방어력/순발력)
+  base_hp INTEGER NOT NULL DEFAULT 100 CHECK (base_hp >= 1 AND base_hp <= 999),
+  base_atk INTEGER NOT NULL DEFAULT 10 CHECK (base_atk >= 1 AND base_atk <= 100),
+  base_def INTEGER NOT NULL DEFAULT 10 CHECK (base_def >= 1 AND base_def <= 100),
+  base_spd INTEGER NOT NULL DEFAULT 10 CHECK (base_spd >= 1 AND base_spd <= 100),
 
-  -- 성장률 (5스텟 시스템)
-  growth_str DECIMAL(4,2) NOT NULL DEFAULT 1.50 CHECK (growth_str >= 1.00 AND growth_str <= 3.00),
-  growth_agi DECIMAL(4,2) NOT NULL DEFAULT 1.50 CHECK (growth_agi >= 1.00 AND growth_agi <= 3.00),
-  growth_vit DECIMAL(4,2) NOT NULL DEFAULT 1.50 CHECK (growth_vit >= 1.00 AND growth_vit <= 3.00),
-  growth_con DECIMAL(4,2) NOT NULL DEFAULT 1.50 CHECK (growth_con >= 1.00 AND growth_con <= 3.00),
-  growth_int DECIMAL(4,2) NOT NULL DEFAULT 1.50 CHECK (growth_int >= 1.00 AND growth_int <= 3.00),
+  -- 성장률 (4스텟 시스템)
+  growth_hp DECIMAL(4,2) NOT NULL DEFAULT 1.50 CHECK (growth_hp >= 1.00 AND growth_hp <= 3.00),
+  growth_atk DECIMAL(4,2) NOT NULL DEFAULT 1.50 CHECK (growth_atk >= 1.00 AND growth_atk <= 3.00),
+  growth_def DECIMAL(4,2) NOT NULL DEFAULT 1.50 CHECK (growth_def >= 1.00 AND growth_def <= 3.00),
+  growth_spd DECIMAL(4,2) NOT NULL DEFAULT 1.50 CHECK (growth_spd >= 1.00 AND growth_spd <= 3.00),
 
-  -- 스프라이트 (PRD 방식 - 6종)
-  sprite_idle VARCHAR(500),
-  sprite_attack VARCHAR(500),
-  sprite_hit VARCHAR(500),
-  sprite_defend VARCHAR(500),
-  sprite_down VARCHAR(500),
-  sprite_walk VARCHAR(500),
+  -- 스프라이트 (PRD 방식 - 6종, base64 이미지 또는 URL)
+  sprite_idle TEXT,
+  sprite_attack TEXT,
+  sprite_hit TEXT,
+  sprite_defend TEXT,
+  sprite_down TEXT,
+  sprite_walk TEXT,
 
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()

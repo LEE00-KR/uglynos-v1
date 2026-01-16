@@ -39,18 +39,16 @@ export const getPets = async (_req: Request, res: Response, next: NextFunction) 
         primaryRatio: row.element_primary_ratio,
       },
       baseStats: {
-        str: row.base_str,
-        agi: row.base_agi,
-        vit: row.base_vit,
-        con: row.base_con,
-        int: row.base_int,
+        hp: row.base_hp,
+        atk: row.base_atk,
+        def: row.base_def,
+        spd: row.base_spd,
       },
       growthRates: {
-        str: parseFloat(row.growth_str),
-        agi: parseFloat(row.growth_agi),
-        vit: parseFloat(row.growth_vit),
-        con: parseFloat(row.growth_con),
-        int: parseFloat(row.growth_int),
+        hp: parseFloat(row.growth_hp),
+        atk: parseFloat(row.growth_atk),
+        def: parseFloat(row.growth_def),
+        spd: parseFloat(row.growth_spd),
       },
       sprites: {
         idle: row.sprite_idle || '',
@@ -112,18 +110,16 @@ export const getPetById = async (req: Request, res: Response, next: NextFunction
         primaryRatio: row.element_primary_ratio,
       },
       baseStats: {
-        str: row.base_str,
-        agi: row.base_agi,
-        vit: row.base_vit,
-        con: row.base_con,
-        int: row.base_int,
+        hp: row.base_hp,
+        atk: row.base_atk,
+        def: row.base_def,
+        spd: row.base_spd,
       },
       growthRates: {
-        str: parseFloat(row.growth_str),
-        agi: parseFloat(row.growth_agi),
-        vit: parseFloat(row.growth_vit),
-        con: parseFloat(row.growth_con),
-        int: parseFloat(row.growth_int),
+        hp: parseFloat(row.growth_hp),
+        atk: parseFloat(row.growth_atk),
+        def: parseFloat(row.growth_def),
+        spd: parseFloat(row.growth_spd),
       },
       sprites: {
         idle: row.sprite_idle || '',
@@ -155,16 +151,14 @@ export const createPet = async (req: Request, res: Response, next: NextFunction)
       element_primary: body.element.primary,
       element_secondary: body.element.secondary || null,
       element_primary_ratio: body.element.primaryRatio,
-      base_str: body.baseStats.str,
-      base_agi: body.baseStats.agi,
-      base_vit: body.baseStats.vit,
-      base_con: body.baseStats.con,
-      base_int: body.baseStats.int,
-      growth_str: body.growthRates.str,
-      growth_agi: body.growthRates.agi,
-      growth_vit: body.growthRates.vit,
-      growth_con: body.growthRates.con,
-      growth_int: body.growthRates.int,
+      base_hp: body.baseStats.hp,
+      base_atk: body.baseStats.atk,
+      base_def: body.baseStats.def,
+      base_spd: body.baseStats.spd,
+      growth_hp: body.growthRates.hp,
+      growth_atk: body.growthRates.atk,
+      growth_def: body.growthRates.def,
+      growth_spd: body.growthRates.spd,
       sprite_idle: body.sprites.idle,
       sprite_attack: body.sprites.attack,
       sprite_hit: body.sprites.hit,
@@ -206,18 +200,16 @@ export const updatePet = async (req: Request, res: Response, next: NextFunction)
       updates.element_primary_ratio = body.element.primaryRatio;
     }
     if (body.baseStats) {
-      updates.base_str = body.baseStats.str;
-      updates.base_agi = body.baseStats.agi;
-      updates.base_vit = body.baseStats.vit;
-      updates.base_con = body.baseStats.con;
-      updates.base_int = body.baseStats.int;
+      updates.base_hp = body.baseStats.hp;
+      updates.base_atk = body.baseStats.atk;
+      updates.base_def = body.baseStats.def;
+      updates.base_spd = body.baseStats.spd;
     }
     if (body.growthRates) {
-      updates.growth_str = body.growthRates.str;
-      updates.growth_agi = body.growthRates.agi;
-      updates.growth_vit = body.growthRates.vit;
-      updates.growth_con = body.growthRates.con;
-      updates.growth_int = body.growthRates.int;
+      updates.growth_hp = body.growthRates.hp;
+      updates.growth_atk = body.growthRates.atk;
+      updates.growth_def = body.growthRates.def;
+      updates.growth_spd = body.growthRates.spd;
     }
     if (body.sprites) {
       updates.sprite_idle = body.sprites.idle;

@@ -21,11 +21,10 @@ const defaultStage: Omit<AdminStage, 'createdAt' | 'updatedAt'> = {
 };
 
 const defaultMonsterStats: MonsterStats = {
-  str: 10,
-  agi: 10,
-  vit: 10,
-  con: 10,
-  int: 10,
+  hp: 100,
+  atk: 10,
+  def: 10,
+  spd: 10,
 };
 
 const MONSTER_SLOTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -162,11 +161,10 @@ export default function StageManagePage() {
     if (!pet) return defaultMonsterStats;
 
     return {
-      str: Math.round(pet.baseStats.str + pet.growthRates.str * (level - 1)),
-      agi: Math.round(pet.baseStats.agi + pet.growthRates.agi * (level - 1)),
-      vit: Math.round(pet.baseStats.vit + pet.growthRates.vit * (level - 1)),
-      con: Math.round(pet.baseStats.con + pet.growthRates.con * (level - 1)),
-      int: Math.round(pet.baseStats.int + pet.growthRates.int * (level - 1)),
+      hp: Math.round(pet.baseStats.hp + pet.growthRates.hp * (level - 1)),
+      atk: Math.round(pet.baseStats.atk + pet.growthRates.atk * (level - 1)),
+      def: Math.round(pet.baseStats.def + pet.growthRates.def * (level - 1)),
+      spd: Math.round(pet.baseStats.spd + pet.growthRates.spd * (level - 1)),
     };
   };
 
