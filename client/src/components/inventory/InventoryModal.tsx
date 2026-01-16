@@ -288,24 +288,21 @@ export default function InventoryModal({ onClose }: InventoryModalProps) {
                   </p>
                 </div>
 
-                {/* Stats */}
+                {/* Stats - 4스탯 시스템: HP, ATK, DEF, SPD */}
                 {['weapon', 'armor', 'accessory'].includes(selectedItem.item_templates.type) && (
                   <div className="bg-slate-700/50 rounded p-2 text-xs">
                     <div className="grid grid-cols-2 gap-1">
-                      {(selectedItem.item_templates.stat_str + selectedItem.bonus_stat_str) > 0 && (
-                        <div>STR +{selectedItem.item_templates.stat_str + selectedItem.bonus_stat_str}</div>
+                      {(selectedItem.item_templates.stat_hp + selectedItem.bonus_stat_hp) > 0 && (
+                        <div className="text-red-400">체력 +{selectedItem.item_templates.stat_hp + selectedItem.bonus_stat_hp}</div>
                       )}
-                      {(selectedItem.item_templates.stat_agi + selectedItem.bonus_stat_agi) > 0 && (
-                        <div>AGI +{selectedItem.item_templates.stat_agi + selectedItem.bonus_stat_agi}</div>
+                      {(selectedItem.item_templates.stat_atk + selectedItem.bonus_stat_atk) > 0 && (
+                        <div className="text-orange-400">공격력 +{selectedItem.item_templates.stat_atk + selectedItem.bonus_stat_atk}</div>
                       )}
-                      {(selectedItem.item_templates.stat_vit + selectedItem.bonus_stat_vit) > 0 && (
-                        <div>VIT +{selectedItem.item_templates.stat_vit + selectedItem.bonus_stat_vit}</div>
+                      {(selectedItem.item_templates.stat_def + selectedItem.bonus_stat_def) > 0 && (
+                        <div className="text-blue-400">방어력 +{selectedItem.item_templates.stat_def + selectedItem.bonus_stat_def}</div>
                       )}
-                      {(selectedItem.item_templates.stat_con + selectedItem.bonus_stat_con) > 0 && (
-                        <div>CON +{selectedItem.item_templates.stat_con + selectedItem.bonus_stat_con}</div>
-                      )}
-                      {(selectedItem.item_templates.stat_int + selectedItem.bonus_stat_int) > 0 && (
-                        <div>INT +{selectedItem.item_templates.stat_int + selectedItem.bonus_stat_int}</div>
+                      {(selectedItem.item_templates.stat_spd + selectedItem.bonus_stat_spd) > 0 && (
+                        <div className="text-green-400">순발력 +{selectedItem.item_templates.stat_spd + selectedItem.bonus_stat_spd}</div>
                       )}
                     </div>
                   </div>

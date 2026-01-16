@@ -9,11 +9,11 @@ export interface ItemTemplate {
   subtype: string;
   rarity: string;
   level_required: number;
-  stat_str: number;
-  stat_agi: number;
-  stat_vit: number;
-  stat_con: number;
-  stat_int: number;
+  // 4스탯 시스템: HP, ATK, DEF, SPD
+  stat_hp: number;
+  stat_atk: number;
+  stat_def: number;
+  stat_spd: number;
   effect_type: string | null;
   effect_value: number;
   effect_duration: number;
@@ -32,11 +32,11 @@ export interface InventoryItem {
   quantity: number;
   slot_index: number | null;
   enhancement_level: number;
-  bonus_stat_str: number;
-  bonus_stat_agi: number;
-  bonus_stat_vit: number;
-  bonus_stat_con: number;
-  bonus_stat_int: number;
+  // 4스탯 시스템 보너스
+  bonus_stat_hp: number;
+  bonus_stat_atk: number;
+  bonus_stat_def: number;
+  bonus_stat_spd: number;
   is_equipped: boolean;
   equipped_slot: string | null;
   item_templates: ItemTemplate;

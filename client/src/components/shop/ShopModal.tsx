@@ -152,27 +152,24 @@ export default function ShopModal({ shop, onClose }: ShopModalProps) {
                   </p>
                 </div>
 
-                {/* Stats */}
+                {/* Stats - 4스탯 시스템: HP, ATK, DEF, SPD */}
                 {(selectedItem.item_templates.type === 'weapon' ||
                   selectedItem.item_templates.type === 'armor' ||
                   selectedItem.item_templates.type === 'accessory') && (
                   <div className="bg-slate-700/50 rounded p-3 text-sm">
                     <div className="text-slate-400 mb-2">스탯 보너스</div>
                     <div className="grid grid-cols-2 gap-1">
-                      {selectedItem.item_templates.stat_str > 0 && (
-                        <div>STR +{selectedItem.item_templates.stat_str}</div>
+                      {selectedItem.item_templates.stat_hp > 0 && (
+                        <div className="text-red-400">체력 +{selectedItem.item_templates.stat_hp}</div>
                       )}
-                      {selectedItem.item_templates.stat_agi > 0 && (
-                        <div>AGI +{selectedItem.item_templates.stat_agi}</div>
+                      {selectedItem.item_templates.stat_atk > 0 && (
+                        <div className="text-orange-400">공격력 +{selectedItem.item_templates.stat_atk}</div>
                       )}
-                      {selectedItem.item_templates.stat_vit > 0 && (
-                        <div>VIT +{selectedItem.item_templates.stat_vit}</div>
+                      {selectedItem.item_templates.stat_def > 0 && (
+                        <div className="text-blue-400">방어력 +{selectedItem.item_templates.stat_def}</div>
                       )}
-                      {selectedItem.item_templates.stat_con > 0 && (
-                        <div>CON +{selectedItem.item_templates.stat_con}</div>
-                      )}
-                      {selectedItem.item_templates.stat_int > 0 && (
-                        <div>INT +{selectedItem.item_templates.stat_int}</div>
+                      {selectedItem.item_templates.stat_spd > 0 && (
+                        <div className="text-green-400">순발력 +{selectedItem.item_templates.stat_spd}</div>
                       )}
                     </div>
                   </div>
