@@ -19,6 +19,25 @@ const ELEMENT_COLORS: Record<string, string> = {
   wind: 'border-green-500 bg-green-500/20 text-green-400',
 };
 
+// 상극 속성 (조합 불가): 지화(earth+fire), 수풍(water+wind)
+const INVALID_COMBINATIONS: Record<string, string> = {
+  earth: 'fire',
+  fire: 'earth',
+  water: 'wind',
+  wind: 'water',
+};
+
+// 유효한 부속성 목록 반환
+const getValidSecondaryElements = (primary: typeof ELEMENTS[number]) => {
+  return ELEMENTS.filter((el) => el !== primary && el !== INVALID_COMBINATIONS[primary]);
+};
+
+// 기본 부속성 반환 (주속성에 따라)
+const getDefaultSecondary = (primary: typeof ELEMENTS[number]): typeof ELEMENTS[number] => {
+  const validElements = getValidSecondaryElements(primary);
+  return validElements[0];
+};
+
 // 4스탯 시스템: HP, ATK, DEF, SPD
 const STAT_NAMES: Record<string, string> = {
   hp: '체력',
@@ -37,8 +56,8 @@ export default function CharacterCreateModal({ onClose }: Props) {
   const [step, setStep] = useState(1);
   const [nickname, setNickname] = useState('');
   const [primaryElement, setPrimaryElement] = useState<typeof ELEMENTS[number]>('earth');
-  const [secondaryElement, setSecondaryElement] = useState<typeof ELEMENTS[number] | null>(null);
-  const [primaryRatioInput, setPrimaryRatioInput] = useState('100');
+  const [secondaryElement, setSecondaryElement] = useState<typeof ELEMENTS[number]>(getDefaultSecondary('earth'));
+  const [primaryRatioInput, setPrimaryRatioInput] = useState('50');
   // 4스탯 시스템: 기본값 HP:10, ATK:5, DEF:5, SPD:5
   const [stats, setStats] = useState({ hp: 10, atk: 5, def: 5, spd: 5 });
   const [remainingPoints, setRemainingPoints] = useState(20);
@@ -47,7 +66,7 @@ export default function CharacterCreateModal({ onClose }: Props) {
 
   // 주속성 비율 계산 (빈 값이면 0, 아니면 숫자로)
   const primaryRatio = primaryRatioInput === '' ? 0 : Math.min(100, Math.max(0, parseInt(primaryRatioInput) || 0));
-  const secondaryRatio = secondaryElement ? 100 - primaryRatio : 0;
+  const secondaryRatio = 100 - primaryRatio;
 
   // 스탯별 최소값 (HP는 10, 나머지는 5)
   const getMinStat = (stat: keyof typeof stats) => stat === 'hp' ? 10 : 5;
@@ -94,7 +113,7 @@ export default function CharacterCreateModal({ onClose }: Props) {
         element: {
           primary: primaryElement,
           secondary: secondaryElement,
-          primaryRatio: secondaryElement ? primaryRatio : 100,
+          primaryRatio: primaryRatio,
         },
         stats,
       });
@@ -147,8 +166,10 @@ export default function CharacterCreateModal({ onClose }: Props) {
                     key={el}
                     onClick={() => {
                       setPrimaryElement(el);
-                      if (secondaryElement === el) {
-                        setSecondaryElement(null);
+                      // 현재 부속성이 유효하지 않으면 자동으로 유효한 부속성 선택
+                      const validSecondaries = getValidSecondaryElements(el);
+                      if (!validSecondaries.includes(secondaryElement)) {
+                        setSecondaryElement(getDefaultSecondary(el));
                       }
                     }}
                     className={`p-2 rounded-lg border-2 transition-colors text-sm ${
@@ -164,19 +185,9 @@ export default function CharacterCreateModal({ onClose }: Props) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">부속성 선택 (선택사항)</label>
-              <div className="grid grid-cols-4 gap-2">
-                <button
-                  onClick={() => setSecondaryElement(null)}
-                  className={`p-2 rounded-lg border-2 transition-colors text-sm ${
-                    secondaryElement === null
-                      ? 'border-gray-400 bg-gray-400/20 text-gray-300'
-                      : 'border-gray-600 hover:border-gray-500'
-                  }`}
-                >
-                  없음
-                </button>
-                {ELEMENTS.filter((el) => el !== primaryElement).map((el) => (
+              <label className="block text-sm font-medium mb-2">부속성 선택</label>
+              <div className="grid grid-cols-2 gap-2">
+                {getValidSecondaryElements(primaryElement).map((el) => (
                   <button
                     key={el}
                     onClick={() => setSecondaryElement(el)}
@@ -190,45 +201,46 @@ export default function CharacterCreateModal({ onClose }: Props) {
                   </button>
                 ))}
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                * 지화(땅+불), 수풍(물+바람) 조합은 불가
+              </p>
             </div>
 
-            {secondaryElement && (
-              <div>
-                <label className="block text-sm font-medium mb-2">속성 비율</label>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <div className={`text-xs mb-1 ${ELEMENT_COLORS[primaryElement].split(' ')[2]}`}>
-                      {ELEMENT_NAMES[primaryElement]}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        value={primaryRatioInput}
-                        onChange={(e) => setPrimaryRatioInput(e.target.value)}
-                        className="input w-20 text-center"
-                        placeholder="0-100"
-                      />
-                      <span>%</span>
-                    </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">속성 비율</label>
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <div className={`text-xs mb-1 ${ELEMENT_COLORS[primaryElement].split(' ')[2]}`}>
+                    {ELEMENT_NAMES[primaryElement]}
                   </div>
-                  <div className="text-gray-500">+</div>
-                  <div className="flex-1">
-                    <div className={`text-xs mb-1 ${ELEMENT_COLORS[secondaryElement].split(' ')[2]}`}>
-                      {ELEMENT_NAMES[secondaryElement]}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        value={secondaryRatio}
-                        readOnly
-                        className="input w-20 text-center bg-gray-700 cursor-not-allowed"
-                      />
-                      <span>%</span>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={primaryRatioInput}
+                      onChange={(e) => setPrimaryRatioInput(e.target.value)}
+                      className="input w-20 text-center"
+                      placeholder="0-100"
+                    />
+                    <span>%</span>
+                  </div>
+                </div>
+                <div className="text-gray-500">+</div>
+                <div className="flex-1">
+                  <div className={`text-xs mb-1 ${ELEMENT_COLORS[secondaryElement].split(' ')[2]}`}>
+                    {ELEMENT_NAMES[secondaryElement]}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={secondaryRatio}
+                      readOnly
+                      className="input w-20 text-center bg-gray-700 cursor-not-allowed"
+                    />
+                    <span>%</span>
                   </div>
                 </div>
               </div>
-            )}
+            </div>
 
             <button onClick={handleNextStep} className="btn btn-primary w-full">
               다음
