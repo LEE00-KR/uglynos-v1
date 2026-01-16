@@ -22,7 +22,7 @@ interface StageTemplate {
 
 interface StageDrop {
   itemType: 'material' | 'equipment' | 'consumable';
-  itemId: number;
+  itemId: string;  // admin_shop_items.id (VARCHAR)
   dropRate: number;
   quantityMin: number;
   quantityMax: number;

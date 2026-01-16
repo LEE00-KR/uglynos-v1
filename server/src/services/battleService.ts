@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { redis, REDIS_KEYS } from '../config/redis.js';
 import { supabase } from '../config/database.js';
 import { NotFoundError, BattleError } from '../utils/errors.js';
-import { calculateEvasionRate, DEFAULT_ENERGY, MAX_ENERGY } from '../utils/formulas.js';
+import { DEFAULT_ENERGY, MAX_ENERGY } from '../utils/formulas.js';
 import { turnManager } from './battle/turnManager.js';
 import { damageCalculator } from './battle/damageCalculator.js';
 import { statusEffectManager } from './battle/statusEffectManager.js';

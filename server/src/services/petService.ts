@@ -117,13 +117,11 @@ export const removeFromParty = async (petId: string, characterId: string) => {
 };
 
 export const setRiding = async (petId: string, characterId: string) => {
-  const pet = await getPetById(petId, characterId);
+  // Verify pet ownership (throws if not found)
+  await getPetById(petId, characterId);
 
   // admin_pets에는 can_ride 필드가 없으므로 임시로 항상 허용
   // TODO: admin_pets에 can_ride 필드 추가 시 활성화
-  // if (!pet.admin_pets?.can_ride) {
-  //   throw new ValidationError('탑승할 수 없는 펫입니다');
-  // }
 
   // Unset current riding pet
   await supabase

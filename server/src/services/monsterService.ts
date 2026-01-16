@@ -5,7 +5,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../config/database.js';
-import { MAX_LEVEL, getRequiredExpForLevel, GROWTH_GROUPS } from '../config/monster.js';
+import { MAX_LEVEL, getRequiredExpForLevel } from '../config/monster.js';
 import {
   generateRandomPetStats,
   generateRandomGrowthRates,

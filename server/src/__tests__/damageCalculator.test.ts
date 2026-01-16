@@ -4,6 +4,7 @@ import type { BattleUnit, ElementType } from '../types/game';
 describe('DamageCalculator', () => {
   let calculator: DamageCalculator;
 
+  // 4스탯 시스템 (HP, ATK, DEF, SPD) + 기력(Energy)
   const createMockUnit = (overrides: Partial<BattleUnit> = {}): BattleUnit => ({
     id: 'unit-1',
     type: 'character',
@@ -11,14 +12,13 @@ describe('DamageCalculator', () => {
     level: 10,
     hp: 100,
     maxHp: 100,
-    mp: 50,
-    maxMp: 50,
+    energy: 100,
+    maxEnergy: 100,
     stats: {
+      hp: 100,
       atk: 50,
       def: 30,
       spd: 20,
-      eva: 10,
-      int: 15,
     },
     element: {
       primary: 'earth' as ElementType,
@@ -36,8 +36,8 @@ describe('DamageCalculator', () => {
 
   describe('calculate', () => {
     it('should calculate positive damage', () => {
-      const attacker = createMockUnit({ stats: { atk: 100, def: 10, spd: 20, eva: 5, int: 10 } });
-      const defender = createMockUnit({ stats: { atk: 30, def: 20, spd: 10, eva: 5, int: 10 } });
+      const attacker = createMockUnit({ stats: { hp: 100, atk: 100, def: 10, spd: 20 } });
+      const defender = createMockUnit({ stats: { hp: 100, atk: 30, def: 20, spd: 10 } });
 
       const result = calculator.calculate(attacker, defender);
 
@@ -45,8 +45,8 @@ describe('DamageCalculator', () => {
     });
 
     it('should deal minimum 1 damage', () => {
-      const attacker = createMockUnit({ stats: { atk: 1, def: 10, spd: 20, eva: 5, int: 10 } });
-      const defender = createMockUnit({ stats: { atk: 30, def: 1000, spd: 10, eva: 5, int: 10 } });
+      const attacker = createMockUnit({ stats: { hp: 100, atk: 1, def: 10, spd: 20 } });
+      const defender = createMockUnit({ stats: { hp: 100, atk: 30, def: 1000, spd: 10 } });
 
       const result = calculator.calculate(attacker, defender);
 
@@ -111,8 +111,8 @@ describe('DamageCalculator', () => {
     });
 
     it('should increase crit chance with gang-up bonus', () => {
-      const attacker = createMockUnit({ stats: { atk: 100, def: 10, spd: 20, eva: 5, int: 10 } });
-      const defender = createMockUnit({ stats: { atk: 30, def: 100, spd: 10, eva: 5, int: 10 } });
+      const attacker = createMockUnit({ stats: { hp: 100, atk: 100, def: 10, spd: 20 } });
+      const defender = createMockUnit({ stats: { hp: 100, atk: 30, def: 100, spd: 10 } });
 
       // With high gang-up bonus, crit chance increases
       let critCountWithBonus = 0;
@@ -129,32 +129,36 @@ describe('DamageCalculator', () => {
   describe('calculateHit', () => {
     it('should hit with 100% accuracy', () => {
       const attacker = createMockUnit();
-      const defender = createMockUnit({ stats: { atk: 10, def: 10, spd: 10, eva: 0, int: 10 } });
+      // SPD가 낮으면 회피율도 낮음 (회피율 = min(30, SPD * 0.15))
+      const defender = createMockUnit({ stats: { hp: 100, atk: 10, def: 10, spd: 0 } });
 
       const result = calculator.calculateHit(attacker, defender, 100);
 
       expect(result.hit).toBe(true);
     });
 
-    it('should sometimes miss against high evasion', () => {
+    it('should sometimes miss against high SPD (evasion based on SPD)', () => {
       const attacker = createMockUnit();
-      const defender = createMockUnit({ stats: { atk: 10, def: 10, spd: 100, eva: 50, int: 10 } });
+      // 높은 SPD = 높은 회피율 (SPD 200 → 회피율 30% 최대치)
+      const defender = createMockUnit({ stats: { hp: 100, atk: 10, def: 10, spd: 200 } });
 
       let missCount = 0;
       for (let i = 0; i < 100; i++) {
-        const result = calculator.calculateHit(attacker, defender, 50);
+        const result = calculator.calculateHit(attacker, defender, 70);
         if (!result.hit) missCount++;
       }
 
+      // SPD 200 → 회피율 30%, 명중률 70% → 실제 명중 ~49%
       expect(missCount).toBeGreaterThan(0);
     });
   });
 
   describe('calculateHeal', () => {
-    it('should calculate heal based on INT stat', () => {
-      const healer = createMockUnit({ stats: { atk: 10, def: 10, spd: 10, eva: 5, int: 100 } });
+    it('should calculate heal based on healer ATK stat', () => {
+      // 4스탯 시스템에서는 INT 없음, ATK 기반 회복
+      const healer = createMockUnit({ stats: { hp: 100, atk: 100, def: 10, spd: 10 } });
 
-      // Heal ratio 50% of INT
+      // Heal ratio 50% of ATK
       const heal = calculator.calculateHeal(healer, 50);
 
       // 100 * (50/100) = 50
@@ -162,7 +166,7 @@ describe('DamageCalculator', () => {
     });
 
     it('should floor the heal amount', () => {
-      const healer = createMockUnit({ stats: { atk: 10, def: 10, spd: 10, eva: 5, int: 33 } });
+      const healer = createMockUnit({ stats: { hp: 100, atk: 33, def: 10, spd: 10 } });
 
       const heal = calculator.calculateHeal(healer, 50);
 
