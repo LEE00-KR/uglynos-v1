@@ -715,6 +715,7 @@ export const getShopItems = async (_req: Request, res: Response, next: NextFunct
       id: row.id,
       name: row.name,
       category: row.category,
+      shopType: row.shop_type || 'general',
       price: row.price,
       icon: row.icon || '',
       description: row.description || '',
@@ -751,6 +752,7 @@ export const getShopItemById = async (req: Request, res: Response, next: NextFun
       id: row.id,
       name: row.name,
       category: row.category,
+      shopType: row.shop_type || 'general',
       price: row.price,
       icon: row.icon || '',
       description: row.description || '',
@@ -777,6 +779,7 @@ export const createShopItem = async (req: Request, res: Response, next: NextFunc
       id,
       name: body.name,
       category: body.category,
+      shop_type: body.shopType || 'general',
       price: body.price,
       icon: body.icon || '',
       description: body.description || '',
@@ -802,6 +805,7 @@ export const updateShopItem = async (req: Request, res: Response, next: NextFunc
     const updates: Record<string, unknown> = {};
     if (body.name !== undefined) updates.name = body.name;
     if (body.category !== undefined) updates.category = body.category;
+    if (body.shopType !== undefined) updates.shop_type = body.shopType;
     if (body.price !== undefined) updates.price = body.price;
     if (body.icon !== undefined) updates.icon = body.icon;
     if (body.description !== undefined) updates.description = body.description;
