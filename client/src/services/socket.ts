@@ -11,7 +11,9 @@ export const connectSocket = (): Socket => {
   const token = useAuthStore.getState().accessToken;
 
   // 현재 호스트 기반으로 서버 URL 동적 설정 (모바일 접속 지원)
-  const serverUrl = import.meta.env.VITE_API_URL ||
+  // Socket.io는 /api 경로 없이 서버 루트로 연결해야 함
+  const apiUrl = import.meta.env.VITE_API_URL || '';
+  const serverUrl = apiUrl.replace(/\/api$/, '') ||
     `${window.location.protocol}//${window.location.hostname}:3000`;
 
   socket = io(serverUrl, {
