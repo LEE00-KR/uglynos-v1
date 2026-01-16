@@ -139,3 +139,41 @@ export const shopApi = {
   getNPCs: () => api.get('/shops/npcs/all'),
   getNPC: (npcId: number) => api.get(`/shops/npcs/${npcId}`),
 };
+
+// Admin API
+export const adminApi = {
+  // Pets
+  getPets: () => api.get('/admin/pets'),
+  getPet: (id: string) => api.get(`/admin/pets/${id}`),
+  createPet: (data: unknown) => api.post('/admin/pets', data),
+  updatePet: (id: string, data: unknown) => api.put(`/admin/pets/${id}`, data),
+  deletePet: (id: string) => api.delete(`/admin/pets/${id}`),
+
+  // Skills
+  getSkills: () => api.get('/admin/skills'),
+  getSkill: (id: string) => api.get(`/admin/skills/${id}`),
+  createSkill: (data: unknown) => api.post('/admin/skills', data),
+  updateSkill: (id: string, data: unknown) => api.put(`/admin/skills/${id}`, data),
+  deleteSkill: (id: string) => api.delete(`/admin/skills/${id}`),
+
+  // Stage Groups
+  getStageGroups: () => api.get('/admin/stage-groups'),
+  getStageGroup: (id: string) => api.get(`/admin/stage-groups/${id}`),
+  createStageGroup: (data: unknown) => api.post('/admin/stage-groups', data),
+  updateStageGroup: (id: string, data: unknown) => api.put(`/admin/stage-groups/${id}`, data),
+  deleteStageGroup: (id: string) => api.delete(`/admin/stage-groups/${id}`),
+
+  // Stages
+  getStages: () => api.get('/admin/stages'),
+  getStage: (id: string) => api.get(`/admin/stages/${id}`),
+  createStage: (data: unknown) => api.post('/admin/stages', data),
+  updateStage: (id: string, data: unknown) => api.put(`/admin/stages/${id}`, data),
+  deleteStage: (id: string) => api.delete(`/admin/stages/${id}`),
+
+  // Shop Items
+  getShopItems: () => api.get('/admin/shop-items'),
+  getShopItem: (id: string) => api.get(`/admin/shop-items/${id}`),
+  createShopItem: (data: unknown) => api.post('/admin/shop-items', data),
+  updateShopItem: (id: string, data: unknown) => api.put(`/admin/shop-items/${id}`, data),
+  deleteShopItem: (id: string) => api.delete(`/admin/shop-items/${id}`),
+};
