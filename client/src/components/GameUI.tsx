@@ -3,6 +3,7 @@ import { useGameStore } from '../stores/gameStore';
 import InventoryModal from './inventory/InventoryModal';
 import ShopModal from './shop/ShopModal';
 import StageSelectModal from './StageSelectModal';
+import PetManageModal from './PetManageModal';
 import { useInventoryStore, Shop } from '../stores/inventoryStore';
 
 export default function GameUI() {
@@ -13,6 +14,7 @@ export default function GameUI() {
   const [showShopList, setShowShopList] = useState(false);
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
   const [showStageSelect, setShowStageSelect] = useState(false);
+  const [showPetManage, setShowPetManage] = useState(false);
 
   useEffect(() => {
     fetchShops();
@@ -29,8 +31,7 @@ export default function GameUI() {
   const shortcutButtons = [
     { id: 'inventory', label: '인벤토리', icon: '🎒', onClick: () => setShowInventory(true) },
     { id: 'shop', label: '상점', icon: '🏪', onClick: () => setShowShopList(true) },
-    { id: 'pet', label: '펫 관리', icon: '🐾', onClick: () => {/* TODO: Pet management */} },
-    { id: 'equipment', label: '장비', icon: '⚔️', onClick: () => {/* TODO: Equipment */} },
+    { id: 'pet', label: '펫 관리', icon: '🐾', onClick: () => setShowPetManage(true) },
   ];
 
   return (
@@ -154,6 +155,13 @@ export default function GameUI() {
       {showStageSelect && (
         <div className="pointer-events-auto">
           <StageSelectModal onClose={() => setShowStageSelect(false)} />
+        </div>
+      )}
+
+      {/* Pet Manage Modal */}
+      {showPetManage && (
+        <div className="pointer-events-auto">
+          <PetManageModal onClose={() => setShowPetManage(false)} />
         </div>
       )}
     </div>
