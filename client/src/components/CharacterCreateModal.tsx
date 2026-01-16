@@ -18,12 +18,6 @@ const ELEMENT_COLORS: Record<string, string> = {
   fire: 'border-red-500 bg-red-500/20 text-red-400',
   wind: 'border-green-500 bg-green-500/20 text-green-400',
 };
-const ELEMENT_ICONS: Record<string, string> = {
-  earth: '🌍',
-  water: '💧',
-  fire: '🔥',
-  wind: '🌪️',
-};
 
 // 4스탯 시스템: HP, ATK, DEF, SPD
 const STAT_NAMES: Record<string, string> = {
@@ -42,12 +36,18 @@ const STAT_COLORS: Record<string, string> = {
 export default function CharacterCreateModal({ onClose }: Props) {
   const [step, setStep] = useState(1);
   const [nickname, setNickname] = useState('');
-  const [element, setElement] = useState<typeof ELEMENTS[number]>('earth');
+  const [primaryElement, setPrimaryElement] = useState<typeof ELEMENTS[number]>('earth');
+  const [secondaryElement, setSecondaryElement] = useState<typeof ELEMENTS[number] | null>(null);
+  const [primaryRatioInput, setPrimaryRatioInput] = useState('100');
   // 4스탯 시스템: 기본값 HP:10, ATK:5, DEF:5, SPD:5
   const [stats, setStats] = useState({ hp: 10, atk: 5, def: 5, spd: 5 });
   const [remainingPoints, setRemainingPoints] = useState(20);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // 주속성 비율 계산 (빈 값이면 0, 아니면 숫자로)
+  const primaryRatio = primaryRatioInput === '' ? 0 : Math.min(100, Math.max(0, parseInt(primaryRatioInput) || 0));
+  const secondaryRatio = secondaryElement ? 100 - primaryRatio : 0;
 
   // 스탯별 최소값 (HP는 10, 나머지는 5)
   const getMinStat = (stat: keyof typeof stats) => stat === 'hp' ? 10 : 5;
@@ -63,7 +63,7 @@ export default function CharacterCreateModal({ onClose }: Props) {
     setRemainingPoints(newRemaining);
   };
 
-  const handleCreate = async () => {
+  const handleNextStep = () => {
     if (!nickname.trim()) {
       setError('닉네임을 입력해주세요');
       return;
@@ -74,6 +74,16 @@ export default function CharacterCreateModal({ onClose }: Props) {
       return;
     }
 
+    if (nickname.trim().length < 2) {
+      setError('닉네임은 최소 2자 이상이어야 합니다');
+      return;
+    }
+
+    setError('');
+    setStep(2);
+  };
+
+  const handleCreate = async () => {
     setLoading(true);
     setError('');
 
@@ -81,7 +91,11 @@ export default function CharacterCreateModal({ onClose }: Props) {
       await characterApi.create({
         nickname,
         appearance: { eye: 1, nose: 1, mouth: 1, hair: 1, skin: 1 },
-        element: { primary: element, primaryRatio: 100 },
+        element: {
+          primary: primaryElement,
+          secondary: secondaryElement,
+          primaryRatio: secondaryElement ? primaryRatio : 100,
+        },
         stats,
       });
       onClose();
@@ -126,26 +140,97 @@ export default function CharacterCreateModal({ onClose }: Props) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">속성 선택</label>
-              <div className="grid grid-cols-2 gap-2">
+              <label className="block text-sm font-medium mb-2">주속성 선택</label>
+              <div className="grid grid-cols-4 gap-2">
                 {ELEMENTS.map((el) => (
                   <button
                     key={el}
-                    onClick={() => setElement(el)}
-                    className={`p-3 rounded-lg border-2 transition-colors flex items-center justify-center gap-2 ${
-                      element === el
+                    onClick={() => {
+                      setPrimaryElement(el);
+                      if (secondaryElement === el) {
+                        setSecondaryElement(null);
+                      }
+                    }}
+                    className={`p-2 rounded-lg border-2 transition-colors text-sm ${
+                      primaryElement === el
                         ? ELEMENT_COLORS[el]
                         : 'border-gray-600 hover:border-gray-500'
                     }`}
                   >
-                    <span className="text-xl">{ELEMENT_ICONS[el]}</span>
-                    <span>{ELEMENT_NAMES[el]}</span>
+                    {ELEMENT_NAMES[el]}
                   </button>
                 ))}
               </div>
             </div>
 
-            <button onClick={() => setStep(2)} className="btn btn-primary w-full">
+            <div>
+              <label className="block text-sm font-medium mb-2">부속성 선택 (선택사항)</label>
+              <div className="grid grid-cols-4 gap-2">
+                <button
+                  onClick={() => setSecondaryElement(null)}
+                  className={`p-2 rounded-lg border-2 transition-colors text-sm ${
+                    secondaryElement === null
+                      ? 'border-gray-400 bg-gray-400/20 text-gray-300'
+                      : 'border-gray-600 hover:border-gray-500'
+                  }`}
+                >
+                  없음
+                </button>
+                {ELEMENTS.filter((el) => el !== primaryElement).map((el) => (
+                  <button
+                    key={el}
+                    onClick={() => setSecondaryElement(el)}
+                    className={`p-2 rounded-lg border-2 transition-colors text-sm ${
+                      secondaryElement === el
+                        ? ELEMENT_COLORS[el]
+                        : 'border-gray-600 hover:border-gray-500'
+                    }`}
+                  >
+                    {ELEMENT_NAMES[el]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {secondaryElement && (
+              <div>
+                <label className="block text-sm font-medium mb-2">속성 비율</label>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <div className={`text-xs mb-1 ${ELEMENT_COLORS[primaryElement].split(' ')[2]}`}>
+                      {ELEMENT_NAMES[primaryElement]}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={primaryRatioInput}
+                        onChange={(e) => setPrimaryRatioInput(e.target.value)}
+                        className="input w-20 text-center"
+                        placeholder="0-100"
+                      />
+                      <span>%</span>
+                    </div>
+                  </div>
+                  <div className="text-gray-500">+</div>
+                  <div className="flex-1">
+                    <div className={`text-xs mb-1 ${ELEMENT_COLORS[secondaryElement].split(' ')[2]}`}>
+                      {ELEMENT_NAMES[secondaryElement]}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={secondaryRatio}
+                        readOnly
+                        className="input w-20 text-center bg-gray-700 cursor-not-allowed"
+                      />
+                      <span>%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <button onClick={handleNextStep} className="btn btn-primary w-full">
               다음
             </button>
           </div>
