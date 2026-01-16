@@ -112,3 +112,62 @@ export const moveFromStorage = async (req: AuthRequest, res: Response, next: Nex
     next(error);
   }
 };
+
+// =============================================
+// REPRESENTATIVE PET & STANDBY SLOT ENDPOINTS
+// =============================================
+
+export const setRepresentative = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    await petService.setRepresentative(req.params.id, req.characterId!);
+    res.json({ success: true, message: '대표 펫으로 설정되었습니다' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const unsetRepresentative = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    await petService.unsetRepresentative(req.params.id, req.characterId!);
+    res.json({ success: true, message: '대표 펫 설정이 해제되었습니다' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const setStandbySlot = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { slot } = req.body;
+    await petService.setStandbySlot(req.params.id, req.characterId!, slot);
+    res.json({ success: true, message: `대기 슬롯 ${slot}에 배치되었습니다` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const clearStandbySlot = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    await petService.clearStandbySlot(req.params.id, req.characterId!);
+    res.json({ success: true, message: '대기 슬롯에서 제거되었습니다' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getStandbyPets = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const pets = await petService.getStandbyPets(req.characterId!);
+    res.json({ success: true, data: pets });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getRepresentativePet = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const pet = await petService.getRepresentativePet(req.characterId!);
+    res.json({ success: true, data: pet });
+  } catch (error) {
+    next(error);
+  }
+};

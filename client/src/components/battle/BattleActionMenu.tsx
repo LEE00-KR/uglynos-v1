@@ -1,6 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useBattleStore, selectAllies, selectEnemies } from '../../stores/battleStore';
+import { useGameStore } from '../../stores/gameStore';
+import { petApi } from '../../services/api';
 import type { BattleUnit } from '../../stores/battleStore';
+
+const MAX_PET_SLOTS = 20; // 최대 펫 슬롯 수
+
+interface StandbyPet {
+  id: string;
+  nickname: string | null;
+  level: number;
+  standby_slot: number;
+  pet_templates: {
+    name: string;
+    element_primary: string;
+  };
+}
 
 interface ActionButtonProps {
   icon: string;
@@ -8,6 +23,7 @@ interface ActionButtonProps {
   onClick: () => void;
   disabled?: boolean;
   highlight?: boolean;
+  showX?: boolean; // X 표시 여부
 }
 
 const ActionButton: React.FC<ActionButtonProps> = ({
@@ -16,12 +32,13 @@ const ActionButton: React.FC<ActionButtonProps> = ({
   onClick,
   disabled = false,
   highlight = false,
+  showX = false,
 }) => (
   <button
     onClick={onClick}
     disabled={disabled}
     className={`
-      flex flex-col items-center justify-center
+      flex flex-col items-center justify-center relative
       w-16 h-16 rounded-lg border-2 transition-all
       ${disabled
         ? 'bg-gray-700 border-gray-600 text-gray-500 cursor-not-allowed'
@@ -31,6 +48,9 @@ const ActionButton: React.FC<ActionButtonProps> = ({
       }
     `}
   >
+    {showX && (
+      <span className="absolute top-0 right-0 text-red-500 text-lg font-bold -mt-1 -mr-1">✕</span>
+    )}
     <span className="text-2xl">{icon}</span>
     <span className="text-xs mt-1">{label}</span>
   </button>
@@ -95,6 +115,23 @@ const BattleActionMenu: React.FC = () => {
   const allies = useBattleStore(selectAllies);
   const enemies = useBattleStore(selectEnemies);
 
+  // Pet swap state
+  const [showPetSwapMenu, setShowPetSwapMenu] = useState(false);
+  const [standbyPets, setStandbyPets] = useState<StandbyPet[]>([]);
+  const [selectedBattlePet, setSelectedBattlePet] = useState<BattleUnit | null>(null);
+  const [isSwapping, setIsSwapping] = useState(false);
+
+  // Fetch standby pets when menu opens
+  useEffect(() => {
+    if (showPetSwapMenu) {
+      petApi.getStandby().then(res => {
+        setStandbyPets(res.data.data || []);
+      }).catch(err => {
+        console.error('Failed to fetch standby pets:', err);
+      });
+    }
+  }, [showPetSwapMenu]);
+
   // Get player character (first ally that is a character)
   const playerCharacter = allies.find(u => u.type === 'character');
   const playerPets = allies.filter(u => u.type === 'pet');
@@ -131,14 +168,8 @@ const BattleActionMenu: React.FC = () => {
     selectTarget(playerCharacter.id);
   };
 
-  const handleWait = () => {
-    if (!playerCharacter) return;
-    selectAction({ actorId: playerCharacter.id, type: 'wait' });
-    selectTarget(playerCharacter.id);
-  };
-
   // Handle pet action selection
-  const handlePetAction = (pet: BattleUnit, actionType: 'attack' | 'defend' | 'wait') => {
+  const handlePetAction = (pet: BattleUnit, actionType: 'attack' | 'defend') => {
     if (actionType === 'attack') {
       selectAction({ actorId: pet.id, type: 'attack' });
     } else {
@@ -147,8 +178,41 @@ const BattleActionMenu: React.FC = () => {
     }
   };
 
+  // Handle pet swap
+  const handlePetSwap = async (standbyPet: StandbyPet) => {
+    if (!selectedBattlePet || isSwapping) return;
+
+    try {
+      setIsSwapping(true);
+      // TODO: Implement actual swap via socket.io
+      // For now, show message
+      console.log(`Swapping ${selectedBattlePet.name} with ${standbyPet.nickname || standbyPet.pet_templates.name}`);
+
+      // Close menu after swap
+      setShowPetSwapMenu(false);
+      setSelectedBattlePet(null);
+    } catch (error) {
+      console.error('Failed to swap pets:', error);
+    } finally {
+      setIsSwapping(false);
+    }
+  };
+
+  // Get swappable battle pets (not representative, not riding)
+  const swappablePets = playerPets.filter(pet =>
+    pet.isAlive && !pet.isRepresentative && !pet.isRiding
+  );
+
+  const hasStandbyPets = standbyPets.length > 0;
+  const canSwap = swappablePets.length > 0 && hasStandbyPets;
+
   // Check if any enemy is capturable
   const hasCapturableTarget = enemies.some(e => e.isCapturable && e.level === 1 && e.isAlive);
+
+  // Check if pet slots are full
+  const myPets = useGameStore((state) => state.pets);
+  const isPetSlotsFull = myPets.length >= MAX_PET_SLOTS;
+  const canCapture = hasCapturableTarget && !isPetSlotsFull;
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2">
@@ -214,6 +278,76 @@ const BattleActionMenu: React.FC = () => {
         </div>
       )}
 
+      {/* Pet Swap Menu */}
+      {showPetSwapMenu && (
+        <div className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 bg-black/90 rounded-lg p-4 min-w-[350px]">
+          <h3 className="text-yellow-400 font-bold mb-3">펫 교체</h3>
+
+          {/* Battle Pets (Swappable) */}
+          <div className="mb-4">
+            <p className="text-sm text-gray-400 mb-2">전투 펫 선택</p>
+            <div className="flex gap-2 flex-wrap">
+              {swappablePets.length > 0 ? (
+                swappablePets.map(pet => (
+                  <button
+                    key={pet.id}
+                    onClick={() => setSelectedBattlePet(pet)}
+                    className={`px-3 py-2 rounded text-sm transition-all ${
+                      selectedBattlePet?.id === pet.id
+                        ? 'bg-blue-600 border-2 border-blue-400'
+                        : 'bg-gray-700 hover:bg-gray-600'
+                    }`}
+                  >
+                    {pet.name} (Lv.{pet.level})
+                  </button>
+                ))
+              ) : (
+                <p className="text-gray-500 text-sm">교체 가능한 펫이 없습니다</p>
+              )}
+            </div>
+            {playerPets.some(p => p.isRepresentative || p.isRiding) && (
+              <p className="text-xs text-gray-500 mt-1">
+                * 대표/탑승 펫은 교체할 수 없습니다
+              </p>
+            )}
+          </div>
+
+          {/* Standby Pets */}
+          {selectedBattlePet && (
+            <div className="mb-4">
+              <p className="text-sm text-gray-400 mb-2">대기 펫 선택</p>
+              <div className="flex gap-2 flex-wrap">
+                {standbyPets.length > 0 ? (
+                  standbyPets.map(pet => (
+                    <button
+                      key={pet.id}
+                      onClick={() => handlePetSwap(pet)}
+                      disabled={isSwapping}
+                      className="px-3 py-2 rounded text-sm bg-green-700 hover:bg-green-600 transition-all disabled:opacity-50"
+                    >
+                      {pet.nickname || pet.pet_templates.name} (Lv.{pet.level})
+                      <span className="ml-1 text-xs text-green-300">S{pet.standby_slot}</span>
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-sm">대기 슬롯이 비어있습니다</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={() => {
+              setShowPetSwapMenu(false);
+              setSelectedBattlePet(null);
+            }}
+            className="w-full bg-gray-700 hover:bg-gray-600 py-2 rounded"
+          >
+            닫기
+          </button>
+        </div>
+      )}
+
       {/* Pet Actions */}
       {playerPets.length > 0 && !showTargetSelection && (
         <div className="mb-4 bg-black/80 rounded-lg p-3">
@@ -235,20 +369,12 @@ const BattleActionMenu: React.FC = () => {
                     {pendingActions.has(pet.id) ? '준비완료' : '공격'}
                   </button>
                   {!pendingActions.has(pet.id) && pet.isAlive && (
-                    <>
-                      <button
-                        onClick={() => handlePetAction(pet, 'defend')}
-                        className="px-2 py-1 text-xs rounded bg-gray-700 hover:bg-gray-600"
-                      >
-                        방어
-                      </button>
-                      <button
-                        onClick={() => handlePetAction(pet, 'wait')}
-                        className="px-2 py-1 text-xs rounded bg-gray-700 hover:bg-gray-600"
-                      >
-                        대기
-                      </button>
-                    </>
+                    <button
+                      onClick={() => handlePetAction(pet, 'defend')}
+                      className="px-2 py-1 text-xs rounded bg-gray-700 hover:bg-gray-600"
+                    >
+                      방어
+                    </button>
                   )}
                 </div>
               </div>
@@ -286,16 +412,17 @@ const BattleActionMenu: React.FC = () => {
             disabled={hasPlayerAction || isSubmitting}
           />
           <ActionButton
+            icon="🐾"
+            label="펫"
+            onClick={() => setShowPetSwapMenu(true)}
+            disabled={hasPlayerAction || isSubmitting || !canSwap}
+          />
+          <ActionButton
             icon="🪤"
             label="포획"
             onClick={handleCapture}
-            disabled={hasPlayerAction || isSubmitting || !hasCapturableTarget}
-          />
-          <ActionButton
-            icon="⏳"
-            label="대기"
-            onClick={handleWait}
-            disabled={hasPlayerAction || isSubmitting}
+            disabled={hasPlayerAction || isSubmitting || !canCapture}
+            showX={isPetSlotsFull}
           />
           <ActionButton
             icon="🏃"

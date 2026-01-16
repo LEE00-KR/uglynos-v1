@@ -28,6 +28,9 @@ export interface BattleUnit {
   isCapturable?: boolean;
   isRareColor?: boolean;
   loyalty?: number;
+  isRepresentative?: boolean;
+  isRiding?: boolean;
+  templateId?: number;
 }
 
 export interface StatusEffect {
@@ -323,9 +326,15 @@ export const useBattleStore = create<BattleState & BattleActions>((set, get) => 
       if (msg) messages.push(msg);
     });
 
-    // Captured pet message
+    // Captured pet message and remove from battle
     if (result.capturedPet) {
       messages.push(`${result.capturedPet.name}을(를) 포획했다!`);
+      // Remove captured pet from enemy units
+      updatedUnits.forEach((unit, unitId) => {
+        if (unit.type === 'enemy' && unit.templateId === result.capturedPet?.templateId && unit.name === result.capturedPet?.name) {
+          updatedUnits.delete(unitId);
+        }
+      });
     }
 
     set({
