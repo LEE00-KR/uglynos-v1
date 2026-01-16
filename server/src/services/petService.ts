@@ -261,3 +261,141 @@ export const moveFromStorage = async (petId: string, characterId: string) => {
 
   if (error) throw error;
 };
+
+// =============================================
+// REPRESENTATIVE PET & STANDBY SLOT FUNCTIONS
+// =============================================
+
+const MAX_STANDBY_SLOTS = 4;
+
+// 대표 펫 설정
+export const setRepresentative = async (petId: string, characterId: string) => {
+  await getPetById(petId, characterId);
+
+  // 기존 대표 펫 해제
+  await supabase
+    .from('pets')
+    .update({ is_representative: false })
+    .eq('character_id', characterId)
+    .eq('is_representative', true);
+
+  // 새 대표 펫 설정
+  const { error } = await supabase
+    .from('pets')
+    .update({ is_representative: true })
+    .eq('id', petId);
+
+  if (error) throw error;
+};
+
+// 대표 펫 해제
+export const unsetRepresentative = async (petId: string, characterId: string) => {
+  await getPetById(petId, characterId);
+
+  const { error } = await supabase
+    .from('pets')
+    .update({ is_representative: false })
+    .eq('id', petId);
+
+  if (error) throw error;
+};
+
+// 대기 슬롯에 펫 배치
+export const setStandbySlot = async (petId: string, characterId: string, slot: number) => {
+  if (slot < 1 || slot > MAX_STANDBY_SLOTS) {
+    throw new ValidationError(`대기 슬롯은 1~${MAX_STANDBY_SLOTS} 사이여야 합니다`);
+  }
+
+  const pet = await getPetById(petId, characterId);
+
+  // 대표 펫은 대기 슬롯에 배치 불가
+  if (pet.is_representative) {
+    throw new ValidationError('대표 펫은 대기 슬롯에 배치할 수 없습니다');
+  }
+
+  // 탑승 중인 펫은 대기 슬롯에 배치 불가
+  if (pet.is_riding) {
+    throw new ValidationError('탑승 중인 펫은 대기 슬롯에 배치할 수 없습니다');
+  }
+
+  // 해당 슬롯에 이미 펫이 있으면 해제
+  const { data: existing } = await supabase
+    .from('pets')
+    .select('id')
+    .eq('character_id', characterId)
+    .eq('standby_slot', slot)
+    .single();
+
+  if (existing) {
+    await supabase
+      .from('pets')
+      .update({ standby_slot: null })
+      .eq('id', existing.id);
+  }
+
+  // 새 펫을 슬롯에 배치
+  const { error } = await supabase
+    .from('pets')
+    .update({ standby_slot: slot })
+    .eq('id', petId);
+
+  if (error) throw error;
+};
+
+// 대기 슬롯에서 펫 제거
+export const clearStandbySlot = async (petId: string, characterId: string) => {
+  await getPetById(petId, characterId);
+
+  const { error } = await supabase
+    .from('pets')
+    .update({ standby_slot: null })
+    .eq('id', petId);
+
+  if (error) throw error;
+};
+
+// 대기 슬롯의 펫 목록 조회
+export const getStandbyPets = async (characterId: string) => {
+  const { data, error } = await supabase
+    .from('pets')
+    .select(`
+      *,
+      pet_templates (
+        name,
+        element_primary,
+        element_secondary,
+        element_primary_ratio,
+        can_ride,
+        rarity
+      )
+    `)
+    .eq('character_id', characterId)
+    .not('standby_slot', 'is', null)
+    .order('standby_slot', { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+};
+
+// 대표 펫 조회
+export const getRepresentativePet = async (characterId: string) => {
+  const { data, error } = await supabase
+    .from('pets')
+    .select(`
+      *,
+      pet_templates (
+        name,
+        element_primary,
+        element_secondary,
+        element_primary_ratio,
+        can_ride,
+        rarity
+      )
+    `)
+    .eq('character_id', characterId)
+    .eq('is_representative', true)
+    .single();
+
+  if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+  return data || null;
+};

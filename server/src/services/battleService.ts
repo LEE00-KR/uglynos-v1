@@ -197,6 +197,8 @@ class BattleService {
         loyalty: pet.loyalty,
         isAlive: true,
         isDefending: false,
+        isRepresentative: pet.is_representative || false,
+        isRiding: pet.is_riding || false,
       });
     }
 
@@ -369,6 +371,59 @@ class BattleService {
               name: target.name,
               isRareColor: target.isRareColor || false,
             };
+
+            // Save captured pet to DB
+            const characterId = battleState.participants[0];
+            const petData = captureManager.createCapturedPet(target, characterId);
+            const { error: insertError } = await supabase.from('pets').insert({
+              template_id: petData.templateId,
+              character_id: petData.characterId,
+              nickname: petData.nickname,
+              level: petData.level,
+              exp: petData.exp,
+              stat_str: petData.stat_str,
+              stat_agi: petData.stat_agi,
+              stat_vit: petData.stat_vit,
+              stat_con: petData.stat_con,
+              stat_int: petData.stat_int,
+              growth_str: petData.growth_str,
+              growth_agi: petData.growth_agi,
+              growth_vit: petData.growth_vit,
+              growth_con: petData.growth_con,
+              growth_int: petData.growth_int,
+              loyalty: petData.loyalty,
+              is_rare_color: petData.isRareColor,
+              is_starter: petData.isStarter,
+            });
+            if (insertError) {
+              console.error('Failed to save captured pet:', insertError);
+            }
+          }
+        }
+
+        // Check for flee - execute actual flee logic
+        if (action.type === 'flee') {
+          const charUnit = battleState.units.get(action.actorId);
+          const enemies = Array.from(battleState.units.values()).filter(
+            (u) => u.type === 'enemy' && u.isAlive
+          );
+
+          if (enemies.length === 0) {
+            battleState.phase = 'victory';
+          } else {
+            const avgEnemySpd = enemies.reduce((s, e) => s + e.stats.spd, 0) / enemies.length;
+            const fleeChance = Math.max(
+              10,
+              Math.min(90, 30 + (charUnit?.stats.spd || 10) - avgEnemySpd)
+            );
+
+            const success = Math.random() * 100 < fleeChance;
+            if (success) {
+              battleState.phase = 'fled';
+              results[results.length - 1].message = `${charUnit?.name} 도주 성공!`;
+            } else {
+              results[results.length - 1].message = `${charUnit?.name} 도주 실패!`;
+            }
           }
         }
       }

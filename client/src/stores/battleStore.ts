@@ -28,6 +28,9 @@ export interface BattleUnit {
   isCapturable?: boolean;
   isRareColor?: boolean;
   loyalty?: number;
+  isRepresentative?: boolean;
+  isRiding?: boolean;
+  templateId?: number;
 }
 
 export interface StatusEffect {
@@ -323,9 +326,15 @@ export const useBattleStore = create<BattleState & BattleActions>((set, get) => 
       if (msg) messages.push(msg);
     });
 
-    // Captured pet message
+    // Captured pet message and remove from battle
     if (result.capturedPet) {
       messages.push(`${result.capturedPet.name}을(를) 포획했다!`);
+      // Remove captured pet from enemy units
+      updatedUnits.forEach((unit, unitId) => {
+        if (unit.type === 'enemy' && unit.templateId === result.capturedPet?.templateId && unit.name === result.capturedPet?.name) {
+          updatedUnits.delete(unitId);
+        }
+      });
     }
 
     set({
@@ -383,12 +392,35 @@ export const useBattleStore = create<BattleState & BattleActions>((set, get) => 
 
   reset: () => {
     const state = get();
-    if (state.socket) {
-      state.socket.off('battle:turn_result');
-      state.socket.off('battle:ended');
-      state.socket.off('battle:unit_update');
+    const socket = state.socket; // 소켓 참조 보존
+
+    // 기존 리스너 제거
+    if (socket) {
+      socket.off('battle:turn_result');
+      socket.off('battle:ended');
+      socket.off('battle:unit_update');
     }
-    set(initialState);
+
+    // 상태 초기화 (소켓은 유지)
+    set({
+      ...initialState,
+      socket: socket,
+    });
+
+    // 소켓 리스너 재등록
+    if (socket) {
+      socket.on('battle:turn_result', (result: TurnResult) => {
+        get().updateTurn(result);
+      });
+
+      socket.on('battle:ended', (data: { result: 'victory' | 'defeat' | 'fled'; rewards?: BattleRewards }) => {
+        get().endBattle(data.result, data.rewards);
+      });
+
+      socket.on('battle:unit_update', (data: { unitId: string; updates: Partial<BattleUnit> }) => {
+        get().updateUnit(data.unitId, data.updates);
+      });
+    }
   },
 }));
 

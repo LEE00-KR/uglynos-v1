@@ -87,6 +87,8 @@ export const petApi = {
   getAll: () => api.get('/pets'),
   getActive: () => api.get('/pets/active'),
   getStorage: () => api.get('/pets/storage'),
+  getStandby: () => api.get('/pets/standby'),
+  getRepresentative: () => api.get('/pets/representative'),
   get: (id: string) => api.get(`/pets/${id}`),
   updateNickname: (id: string, nickname: string) =>
     api.patch(`/pets/${id}/nickname`, { nickname }),
@@ -97,6 +99,11 @@ export const petApi = {
   unsetRiding: (id: string) => api.delete(`/pets/${id}/ride`),
   moveToStorage: (id: string) => api.post(`/pets/${id}/storage`),
   moveFromStorage: (id: string) => api.delete(`/pets/${id}/storage`),
+  setRepresentative: (id: string) => api.post(`/pets/${id}/representative`),
+  unsetRepresentative: (id: string) => api.delete(`/pets/${id}/representative`),
+  setStandbySlot: (id: string, slot: number) =>
+    api.post(`/pets/${id}/standby`, { slot }),
+  clearStandbySlot: (id: string) => api.delete(`/pets/${id}/standby`),
   release: (id: string) => api.delete(`/pets/${id}`),
 };
 
