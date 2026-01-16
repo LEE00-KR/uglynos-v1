@@ -144,6 +144,7 @@ CREATE TABLE IF NOT EXISTS admin_shop_items (
   id VARCHAR(50) PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   category VARCHAR(20) NOT NULL CHECK (category IN ('consumable', 'equipment', 'material', 'pet', 'etc')),
+  shop_type VARCHAR(20) NOT NULL DEFAULT 'general' CHECK (shop_type IN ('general', 'premium', 'event', 'special')),
   price INTEGER NOT NULL CHECK (price >= 0),
   -- 재화는 stone 단일
   icon VARCHAR(500),

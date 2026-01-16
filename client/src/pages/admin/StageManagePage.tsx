@@ -363,14 +363,54 @@ export default function StageManagePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">전투 배경 이미지 URL</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">전투 배경 이미지</label>
+                  {/* Preview */}
+                  <div className="w-full h-32 bg-gray-700 border border-gray-600 rounded-lg flex items-center justify-center overflow-hidden mb-2">
+                    {formData.background ? (
+                      <img
+                        src={formData.background}
+                        alt="배경 미리보기"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    ) : (
+                      <span className="text-gray-500 text-sm">미리보기</span>
+                    )}
+                  </div>
+                  {/* File Upload */}
+                  {isEditing && (
+                    <label className="block mb-2">
+                      <span className="sr-only">파일 선택</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              const base64 = ev.target?.result as string;
+                              setFormData({ ...formData, background: base64 });
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="block w-full text-xs text-gray-400
+                          file:mr-2 file:py-1 file:px-3
+                          file:rounded file:border-0
+                          file:text-xs file:font-medium
+                          file:bg-primary-600 file:text-white
+                          hover:file:bg-primary-700
+                          file:cursor-pointer cursor-pointer"
+                      />
+                    </label>
+                  )}
                   <input
                     type="text"
                     value={formData.background}
                     onChange={(e) => setFormData({ ...formData, background: e.target.value })}
                     disabled={!isEditing}
-                    placeholder="/backgrounds/battle_grass.png"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 disabled:opacity-50"
+                    placeholder="또는 URL 입력"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 disabled:opacity-50 text-sm"
                   />
                 </div>
               </div>

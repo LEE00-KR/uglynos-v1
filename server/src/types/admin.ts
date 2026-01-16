@@ -209,6 +209,7 @@ export interface AdminStage {
 // Shop Item Types (PRD 방식 + stone 단일 재화)
 // =====================================================
 export type ShopCategory = 'consumable' | 'equipment' | 'material' | 'pet' | 'etc';
+export type ShopType = 'general' | 'premium' | 'event' | 'special';
 
 export interface ShopEffect {
   type: string;
@@ -222,6 +223,7 @@ export interface AdminShopItem {
   id: string;
   name: string;
   category: ShopCategory;
+  shopType: ShopType;
   price: number;
   // currency는 stone 단일이므로 필드 없음
   icon: string;
@@ -286,6 +288,7 @@ export interface CreateAdminShopItemRequest {
   id?: string;
   name: string;
   category: ShopCategory;
+  shopType?: ShopType;
   price: number;
   icon?: string;
   description?: string;

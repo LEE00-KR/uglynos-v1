@@ -221,6 +221,9 @@ export interface AdminStage {
 // =====================================================
 export type ShopCategory = 'consumable' | 'equipment' | 'material' | 'pet' | 'etc';
 
+// 상점 타입 (어떤 상점에 소속되는지)
+export type ShopType = 'general' | 'premium' | 'event' | 'special';
+
 export interface ShopEffect {
   type: string;
   target?: string;
@@ -233,6 +236,7 @@ export interface AdminShopItem {
   id: string;
   name: string;
   category: ShopCategory;
+  shopType: ShopType;  // 소속 상점
   price: number;
   // 재화는 stone 단일
   icon: string;
@@ -275,6 +279,13 @@ export const SHOP_CATEGORIES: { value: ShopCategory; label: string }[] = [
   { value: 'material', label: '재료' },
   { value: 'pet', label: '페트' },
   { value: 'etc', label: '기타' },
+];
+
+export const SHOP_TYPES: { value: ShopType; label: string }[] = [
+  { value: 'general', label: '일반 상점' },
+  { value: 'premium', label: '프리미엄 상점' },
+  { value: 'event', label: '이벤트 상점' },
+  { value: 'special', label: '특별 상점' },
 ];
 
 export const ELEMENTS: ElementType[] = ['earth', 'water', 'fire', 'wind'];

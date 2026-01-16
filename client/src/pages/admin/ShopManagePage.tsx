@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAdminStore } from '../../stores/adminStore';
-import type { AdminShopItem, ShopCategory, ShopEffect } from '../../types/admin';
-import { SHOP_CATEGORIES } from '../../types/admin';
+import type { AdminShopItem, ShopCategory, ShopType, ShopEffect } from '../../types/admin';
+import { SHOP_CATEGORIES, SHOP_TYPES } from '../../types/admin';
 
 const defaultShopItem: Omit<AdminShopItem, 'createdAt' | 'updatedAt'> = {
   id: '',
   name: '',
   category: 'consumable',
+  shopType: 'general',
   price: 100,
   icon: '',
   description: '',
@@ -308,7 +309,7 @@ export default function ShopManagePage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">카테고리</label>
                     <select
@@ -320,6 +321,21 @@ export default function ShopManagePage() {
                       {SHOP_CATEGORIES.map((cat) => (
                         <option key={cat.value} value={cat.value}>
                           {cat.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">소속 상점</label>
+                    <select
+                      value={formData.shopType}
+                      onChange={(e) => setFormData({ ...formData, shopType: e.target.value as ShopType })}
+                      disabled={!isEditing}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                    >
+                      {SHOP_TYPES.map((shop) => (
+                        <option key={shop.value} value={shop.value}>
+                          {shop.label}
                         </option>
                       ))}
                     </select>

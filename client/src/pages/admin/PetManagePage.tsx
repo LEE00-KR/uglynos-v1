@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAdminStore } from '../../stores/adminStore';
 import type { AdminPet, AdminPetBaseStatsRange, AdminPetBonusPool, AdminPetGrowthRatesRange, AdminPetSprites, ElementType, GrowthGroup } from '../../types/admin';
-import { ELEMENTS, ELEMENT_LABELS, ELEMENT_COLORS, STATS, STAT_LABELS, GROWTH_GROUP_LABELS, GROWTH_GROUP_COLORS, calculateGrowthGroup, MAX_TOTAL_STATS } from '../../types/admin';
+import { ELEMENTS, ELEMENT_LABELS, ELEMENT_COLORS, STATS, STAT_LABELS, GROWTH_GROUP_COLORS, calculateGrowthGroup } from '../../types/admin';
 
 const defaultPet: Omit<AdminPet, 'createdAt' | 'updatedAt'> = {
   id: '',
@@ -127,11 +127,18 @@ export default function PetManagePage() {
     });
   };
 
-  const handlePrimaryRatioChange = (ratio: number) => {
+  const handlePrimaryRatioChange = (value: string) => {
+    const numValue = value === '' ? 0 : parseInt(value);
     setFormData({
       ...formData,
-      element: { ...formData.element, primaryRatio: ratio },
+      element: { ...formData.element, primaryRatio: numValue },
     });
+  };
+
+  // Validation for primary ratio
+  const isValidPrimaryRatio = () => {
+    const value = formData.element.primaryRatio;
+    return value >= 50 && value <= 100;
   };
 
   const handleBaseStatRangeChange = (stat: keyof AdminPetBaseStatsRange, field: 'min' | 'max', value: string) => {
@@ -167,14 +174,17 @@ export default function PetManagePage() {
   // Validation helpers
   const isValidBaseStat = (stat: keyof AdminPetBaseStatsRange, field: 'min' | 'max') => {
     const value = formData.baseStatsRange[stat][field];
-    const max = stat === 'hp' ? 999 : 100;
-    return value >= 1 && value <= max;
+    const max = stat === 'hp' ? 100 : 20;
+    return value >= 0 && value <= max;
   };
+
+  // 보너스풀 합산 계산
+  const totalBonusPool = formData.bonusPool.hp + formData.bonusPool.atk + formData.bonusPool.def + formData.bonusPool.spd;
+  const isValidTotalBonusPool = totalBonusPool <= 20;
 
   const isValidBonusPool = (stat: keyof AdminPetBonusPool) => {
     const value = formData.bonusPool[stat];
-    const max = stat === 'hp' ? 50 : 10;
-    return value >= 0 && value <= max;
+    return value >= 0 && isValidTotalBonusPool;
   };
 
   const isValidGrowthRate = (stat: keyof AdminPetGrowthRatesRange, field: 'min' | 'max') => {
@@ -208,17 +218,15 @@ export default function PetManagePage() {
     setFormData({ ...formData, skills: newSkills });
   };
 
-  // Calculate average growth rate
+  // Calculate average growth rate (HP 제외)
   const avgGrowthRate = (
-    (formData.growthRatesRange.hp.min + formData.growthRatesRange.hp.max) / 2 +
     (formData.growthRatesRange.atk.min + formData.growthRatesRange.atk.max) / 2 +
     (formData.growthRatesRange.def.min + formData.growthRatesRange.def.max) / 2 +
     (formData.growthRatesRange.spd.min + formData.growthRatesRange.spd.max) / 2
-  );
+  ) / 3;
 
   // Calculate growth group
   const growthGroup: GrowthGroup = calculateGrowthGroup(formData.totalStats);
-  const statPercent = ((formData.totalStats / MAX_TOTAL_STATS) * 100).toFixed(1);
 
   return (
     <div className="p-8">
@@ -389,12 +397,13 @@ export default function PetManagePage() {
                       <label className="block text-xs text-gray-400 mb-1">주 속성 비율 (%)</label>
                       <input
                         type="number"
-                        min="50"
-                        max="100"
-                        value={formData.element.primaryRatio}
-                        onChange={(e) => handlePrimaryRatioChange(parseInt(e.target.value) || 100)}
+                        value={formData.element.primaryRatio || ''}
+                        onChange={(e) => handlePrimaryRatioChange(e.target.value)}
                         disabled={!isEditing || !formData.element.secondary}
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                        placeholder="50-100"
+                        className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white disabled:opacity-50 ${
+                          isEditing && formData.element.secondary && !isValidPrimaryRatio() ? 'border-red-500' : 'border-gray-600'
+                        }`}
                       />
                     </div>
                   </div>
@@ -420,22 +429,20 @@ export default function PetManagePage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-medium text-gray-300">성장 그룹:</span>
-                      <span className={`px-3 py-1 rounded-full text-white font-bold ${GROWTH_GROUP_COLORS[growthGroup]}`}>
-                        {growthGroup}등급
-                      </span>
-                      <span className="text-sm text-gray-400">
-                        ({GROWTH_GROUP_LABELS[growthGroup]})
+                      <span className="text-sm text-yellow-400">
+                        페트 생성 시 총합 스탯 기반으로 랜덤 부여됨
                       </span>
                     </div>
                     <div className="text-sm text-gray-400">
-                      총합 스탯: <span className="text-white font-medium">{formData.totalStats}</span> / {MAX_TOTAL_STATS} ({statPercent}%)
+                      예상 그룹: <span className={`px-2 py-0.5 rounded text-white font-bold ${GROWTH_GROUP_COLORS[growthGroup]}`}>{growthGroup}</span>
+                      <span className="ml-2">(총합: {formData.totalStats})</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Base Stats Range */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-4">기본 스텟 범위 (HP: 1-999, 그 외: 1-100)</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-4">기본 스텟 범위 (HP: 0-100, 그 외: 0-20)</label>
                   <div className="space-y-3">
                     {STATS.map((stat) => (
                       <div key={stat} className="flex items-center gap-4">
@@ -470,7 +477,12 @@ export default function PetManagePage() {
 
                 {/* Bonus Pool */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-4">보너스 풀 (HP: 0-50, 그 외: 0-10)</label>
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="block text-sm font-medium text-gray-300">보너스 풀 (합산 최대 20)</label>
+                    <span className={`text-sm ${isValidTotalBonusPool ? 'text-green-400' : 'text-red-400'}`}>
+                      합산: {totalBonusPool} / 20
+                    </span>
+                  </div>
                   <div className="grid grid-cols-4 gap-3">
                     {STATS.map((stat) => (
                       <div key={stat}>
@@ -493,8 +505,8 @@ export default function PetManagePage() {
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <label className="block text-sm font-medium text-gray-300">성장률 범위 (1.00-3.00)</label>
-                    <span className={`text-sm ${avgGrowthRate >= 4 && avgGrowthRate <= 12 ? 'text-green-400' : 'text-yellow-400'}`}>
-                      평균 성장률: {avgGrowthRate.toFixed(2)}
+                    <span className={`text-sm ${avgGrowthRate >= 1 && avgGrowthRate <= 3 ? 'text-green-400' : 'text-yellow-400'}`}>
+                      평균 성장률 (HP 제외): {avgGrowthRate.toFixed(2)}
                     </span>
                   </div>
                   <div className="space-y-3">
