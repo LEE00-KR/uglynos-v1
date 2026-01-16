@@ -18,6 +18,12 @@ const ELEMENT_COLORS: Record<string, string> = {
   fire: 'border-red-500 bg-red-500/20 text-red-400',
   wind: 'border-green-500 bg-green-500/20 text-green-400',
 };
+const ELEMENT_ICONS: Record<string, string> = {
+  earth: '🌍',
+  water: '💧',
+  fire: '🔥',
+  wind: '🌪️',
+};
 
 // 4스탯 시스템: HP, ATK, DEF, SPD
 const STAT_NAMES: Record<string, string> = {
@@ -37,14 +43,14 @@ export default function CharacterCreateModal({ onClose }: Props) {
   const [step, setStep] = useState(1);
   const [nickname, setNickname] = useState('');
   const [element, setElement] = useState<typeof ELEMENTS[number]>('earth');
-  // 4스탯 시스템: 기본값 HP:100, ATK:10, DEF:10, SPD:10
-  const [stats, setStats] = useState({ hp: 100, atk: 10, def: 10, spd: 10 });
+  // 4스탯 시스템: 기본값 HP:10, ATK:5, DEF:5, SPD:5
+  const [stats, setStats] = useState({ hp: 10, atk: 5, def: 5, spd: 5 });
   const [remainingPoints, setRemainingPoints] = useState(20);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 스탯별 최소값 (HP는 100, 나머지는 10)
-  const getMinStat = (stat: keyof typeof stats) => stat === 'hp' ? 100 : 10;
+  // 스탯별 최소값 (HP는 10, 나머지는 5)
+  const getMinStat = (stat: keyof typeof stats) => stat === 'hp' ? 10 : 5;
 
   const handleStatChange = (stat: keyof typeof stats, delta: number) => {
     const minStat = getMinStat(stat);
@@ -126,13 +132,14 @@ export default function CharacterCreateModal({ onClose }: Props) {
                   <button
                     key={el}
                     onClick={() => setElement(el)}
-                    className={`p-3 rounded-lg border-2 transition-colors ${
+                    className={`p-3 rounded-lg border-2 transition-colors flex items-center justify-center gap-2 ${
                       element === el
                         ? ELEMENT_COLORS[el]
                         : 'border-gray-600 hover:border-gray-500'
                     }`}
                   >
-                    {ELEMENT_NAMES[el]}
+                    <span className="text-xl">{ELEMENT_ICONS[el]}</span>
+                    <span>{ELEMENT_NAMES[el]}</span>
                   </button>
                 ))}
               </div>
