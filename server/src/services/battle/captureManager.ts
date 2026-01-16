@@ -2,6 +2,7 @@ import type { BattleUnit } from '../../types/game.js';
 import {
   generateRandomGrowthRates,
   calculateGrowthGroup,
+  calculateCatchRate,
   type GrowthGroup,
 } from '../../utils/formulas.js';
 
@@ -44,31 +45,25 @@ export class CaptureManager {
   /**
    * Attempt to capture a pet
    * - Only level 1 pets can be captured
-   * - Base rate from template + HP modifier
+   * - 기본 5%, HP/레벨에 따라 증가
    */
   tryCatch(
     target: BattleUnit,
-    _catcher: BattleUnit,
+    catcher: BattleUnit,
     captureItem?: CaptureItem
   ): CaptureResult {
     if (!target.isCapturable || target.level !== 1) {
       return { success: false, reason: 'not_capturable' };
     }
 
-    // Base capture rate from template (captureRate field) or default
-    const baseCaptureRate = target.captureRate || 50;
-
-    // HP ratio modifier (HP 낮을수록 포획률 증가)
+    // HP 비율
     const hpRatio = target.hp / target.maxHp;
-    let catchRate = baseCaptureRate * (1 - hpRatio * 0.5);
 
-    // Item bonus
-    if (captureItem) {
-      catchRate += captureItem.catchBonus;
-    }
+    // 아이템 보너스
+    const itemBonus = captureItem?.catchBonus || 0;
 
-    // Max 95%
-    catchRate = Math.min(catchRate, 95);
+    // 포획률 계산 (HP + 캐릭터 레벨 + 아이템)
+    const catchRate = calculateCatchRate(hpRatio, catcher.level, itemBonus);
 
     const roll = Math.random() * 100;
     const success = roll < catchRate;
@@ -144,16 +139,17 @@ export class CaptureManager {
   /**
    * Calculate capture rate display (for UI)
    */
-  getEstimatedCatchRate(target: BattleUnit, itemBonus: number = 0): number {
+  getEstimatedCatchRate(
+    target: BattleUnit,
+    catcherLevel: number = 1,
+    itemBonus: number = 0
+  ): number {
     if (!target.isCapturable || target.level !== 1) {
       return 0;
     }
 
-    const baseCaptureRate = target.captureRate || 50;
     const hpRatio = target.hp / target.maxHp;
-    let rate = baseCaptureRate * (1 - hpRatio * 0.5);
-    rate += itemBonus;
-    return Math.min(Math.floor(rate), 95);
+    return calculateCatchRate(hpRatio, catcherLevel, itemBonus);
   }
 }
 

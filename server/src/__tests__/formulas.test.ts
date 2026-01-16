@@ -256,26 +256,58 @@ describe('formulas', () => {
 
   // =====================================================
   // 포획률 테스트
+  // 기본 5%, HP/레벨에 따라 증가
   // =====================================================
   describe('calculateCatchRate', () => {
-    it('should increase catch rate as HP decreases', () => {
-      const fullHpRate = calculateCatchRate(1.0, 50);  // Full HP
-      const halfHpRate = calculateCatchRate(0.5, 50);  // Half HP
-      const lowHpRate = calculateCatchRate(0.1, 50);   // Low HP
+    it('should return base 5% for high HP', () => {
+      // HP > 80% → 5%
+      expect(calculateCatchRate(0.9, 1)).toBe(5);
+      expect(calculateCatchRate(1.0, 1)).toBe(5);
+    });
 
-      expect(halfHpRate).toBeGreaterThan(fullHpRate);
-      expect(lowHpRate).toBeGreaterThan(halfHpRate);
+    it('should increase rate as HP decreases', () => {
+      // HP ≤ 80% → 10%
+      expect(calculateCatchRate(0.8, 1)).toBe(10);
+      expect(calculateCatchRate(0.6, 1)).toBe(10);
+
+      // HP ≤ 50% → 20%
+      expect(calculateCatchRate(0.5, 1)).toBe(20);
+      expect(calculateCatchRate(0.3, 1)).toBe(20);
+
+      // HP ≤ 10% → 30%
+      expect(calculateCatchRate(0.1, 1)).toBe(30);
+      expect(calculateCatchRate(0.05, 1)).toBe(30);
+    });
+
+    it('should add level bonus for catcher', () => {
+      // Level 30+ → +10%
+      expect(calculateCatchRate(0.9, 30)).toBe(5 + 10);
+
+      // Level 50+ → +20%
+      expect(calculateCatchRate(0.9, 50)).toBe(5 + 20);
+
+      // Level 80+ → +30%
+      expect(calculateCatchRate(0.9, 80)).toBe(5 + 30);
+    });
+
+    it('should combine HP and level bonuses', () => {
+      // HP ≤ 10% (30%) + Level 80 (+30%) = 60%
+      expect(calculateCatchRate(0.1, 80)).toBe(60);
+
+      // HP ≤ 50% (20%) + Level 50 (+20%) = 40%
+      expect(calculateCatchRate(0.5, 50)).toBe(40);
     });
 
     it('should add item bonus', () => {
-      const baseRate = calculateCatchRate(0.5, 50, 0);
-      const withBonus = calculateCatchRate(0.5, 50, 20);
+      const baseRate = calculateCatchRate(0.5, 1, 0);  // 20%
+      const withBonus = calculateCatchRate(0.5, 1, 15);  // 20% + 15%
 
-      expect(withBonus).toBe(baseRate + 20);
+      expect(withBonus).toBe(baseRate + 15);
     });
 
     it('should cap at 95%', () => {
-      const rate = calculateCatchRate(0, 100, 50);  // Would be 150%
+      // HP ≤ 10% (30%) + Level 80 (+30%) + item 50% = 110% → capped at 95%
+      const rate = calculateCatchRate(0.1, 80, 50);
       expect(rate).toBe(95);
     });
   });

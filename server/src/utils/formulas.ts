@@ -245,17 +245,37 @@ export const getGangUpCritBonus = (participantCount: number): number => {
 
 // =====================================================
 // 포획률 계산
+// 기본 5%, HP에 따라 증가, 캐릭터 레벨에 따라 추가 보너스
 // =====================================================
 export const calculateCatchRate = (
   targetHpRatio: number,
-  baseCaptureRate: number = 50,
-  itemBonus: number = 0,
-  luckBonus: number = 0
+  catcherLevel: number = 1,
+  itemBonus: number = 0
 ): number => {
-  // HP가 낮을수록 포획률 증가
-  let rate = baseCaptureRate * (1 - targetHpRatio * 0.5);
+  // HP 기반 기본 포획률 (낮을수록 높음)
+  let rate: number;
+  if (targetHpRatio <= 0.1) {
+    rate = 30;  // HP 10% 이하
+  } else if (targetHpRatio <= 0.5) {
+    rate = 20;  // HP 50% 이하
+  } else if (targetHpRatio <= 0.8) {
+    rate = 10;  // HP 80% 이하
+  } else {
+    rate = 5;   // HP 80% 초과 (기본)
+  }
+
+  // 캐릭터 레벨 보너스
+  if (catcherLevel >= 80) {
+    rate += 30;
+  } else if (catcherLevel >= 50) {
+    rate += 20;
+  } else if (catcherLevel >= 30) {
+    rate += 10;
+  }
+
+  // 아이템 보너스
   rate += itemBonus;
-  rate += luckBonus;
+
   return Math.min(rate, 95); // Max 95%
 };
 
