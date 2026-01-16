@@ -6,12 +6,13 @@ interface Character {
   level: number;
   exp: number;
   gold: number;
-  stat_str: number;
-  stat_agi: number;
-  stat_vit: number;
-  stat_con: number;
-  stat_int: number;
+  // 4스탯 시스템: HP, ATK, DEF, SPD
+  stat_hp: number;
+  stat_atk: number;
+  stat_def: number;
+  stat_spd: number;
   stat_points: number;
+  current_hp: number;
   element_primary: string;
   element_secondary?: string;
   element_primary_ratio: number;

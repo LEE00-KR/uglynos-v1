@@ -5,28 +5,53 @@ interface Props {
   onClose: () => void;
 }
 
-const ELEMENTS = ['earth', 'wind', 'fire', 'water'] as const;
+const ELEMENTS = ['earth', 'water', 'fire', 'wind'] as const;
 const ELEMENT_NAMES: Record<string, string> = {
-  earth: '지(땅)',
-  wind: '풍(바람)',
-  fire: '화(불)',
-  water: '수(물)',
+  earth: '땅',
+  water: '물',
+  fire: '불',
+  wind: '바람',
+};
+const ELEMENT_COLORS: Record<string, string> = {
+  earth: 'border-amber-500 bg-amber-500/20 text-amber-400',
+  water: 'border-blue-500 bg-blue-500/20 text-blue-400',
+  fire: 'border-red-500 bg-red-500/20 text-red-400',
+  wind: 'border-green-500 bg-green-500/20 text-green-400',
+};
+
+// 4스탯 시스템: HP, ATK, DEF, SPD
+const STAT_NAMES: Record<string, string> = {
+  hp: '체력',
+  atk: '공격력',
+  def: '방어력',
+  spd: '순발력',
+};
+const STAT_COLORS: Record<string, string> = {
+  hp: 'text-red-400',
+  atk: 'text-orange-400',
+  def: 'text-blue-400',
+  spd: 'text-green-400',
 };
 
 export default function CharacterCreateModal({ onClose }: Props) {
   const [step, setStep] = useState(1);
   const [nickname, setNickname] = useState('');
   const [element, setElement] = useState<typeof ELEMENTS[number]>('earth');
-  const [stats, setStats] = useState({ str: 5, agi: 5, vit: 5, con: 5, int: 5 });
+  // 4스탯 시스템: 기본값 HP:100, ATK:10, DEF:10, SPD:10
+  const [stats, setStats] = useState({ hp: 100, atk: 10, def: 10, spd: 10 });
   const [remainingPoints, setRemainingPoints] = useState(20);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // 스탯별 최소값 (HP는 100, 나머지는 10)
+  const getMinStat = (stat: keyof typeof stats) => stat === 'hp' ? 100 : 10;
+
   const handleStatChange = (stat: keyof typeof stats, delta: number) => {
+    const minStat = getMinStat(stat);
     const newValue = stats[stat] + delta;
     const newRemaining = remainingPoints - delta;
 
-    if (newValue < 5 || newRemaining < 0) return;
+    if (newValue < minStat || newRemaining < 0) return;
 
     setStats({ ...stats, [stat]: newValue });
     setRemainingPoints(newRemaining);
@@ -103,7 +128,7 @@ export default function CharacterCreateModal({ onClose }: Props) {
                     onClick={() => setElement(el)}
                     className={`p-3 rounded-lg border-2 transition-colors ${
                       element === el
-                        ? 'border-primary-500 bg-primary-500/20'
+                        ? ELEMENT_COLORS[el]
                         : 'border-gray-600 hover:border-gray-500'
                     }`}
                   >
@@ -129,16 +154,18 @@ export default function CharacterCreateModal({ onClose }: Props) {
 
             {(Object.keys(stats) as Array<keyof typeof stats>).map((stat) => (
               <div key={stat} className="flex items-center justify-between">
-                <span className="w-20 font-medium uppercase">{stat}</span>
+                <span className={`w-20 font-medium ${STAT_COLORS[stat]}`}>
+                  {STAT_NAMES[stat]}
+                </span>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => handleStatChange(stat, -1)}
                     className="btn btn-secondary px-3 py-1"
-                    disabled={stats[stat] <= 5}
+                    disabled={stats[stat] <= getMinStat(stat)}
                   >
                     -
                   </button>
-                  <span className="w-8 text-center text-lg font-bold">
+                  <span className="w-12 text-center text-lg font-bold">
                     {stats[stat]}
                   </span>
                   <button

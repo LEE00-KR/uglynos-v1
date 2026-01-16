@@ -17,15 +17,12 @@ interface PetDetail {
   is_rare_color: boolean;
   is_starter: boolean;
   in_storage: boolean;
-  is_representative: boolean;
-  standby_slot: number | null;
-  stat_str: number;
-  stat_agi: number;
-  stat_vit: number;
-  stat_con: number;
-  stat_int: number;
+  // 4스탯 시스템: HP, ATK, DEF, SPD
+  stat_hp: number;
+  stat_atk: number;
+  stat_def: number;
+  stat_spd: number;
   current_hp: number;
-  current_mp: number;
   template: {
     id: number;
     name: string;
@@ -689,24 +686,20 @@ export default function PetManageModal({ onClose }: PetManageModalProps) {
                     </div>
                     <div className="border-t border-slate-700 pt-2 mt-2 grid grid-cols-2 gap-1 text-xs">
                       <div className="flex justify-between">
-                        <span className="text-red-400">STR</span>
-                        <span>{selectedPet.stat_str}</span>
+                        <span className="text-red-400">체력</span>
+                        <span>{selectedPet.stat_hp}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-green-400">AGI</span>
-                        <span>{selectedPet.stat_agi}</span>
+                        <span className="text-orange-400">공격력</span>
+                        <span>{selectedPet.stat_atk}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-orange-400">VIT</span>
-                        <span>{selectedPet.stat_vit}</span>
+                        <span className="text-blue-400">방어력</span>
+                        <span>{selectedPet.stat_def}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-yellow-400">CON</span>
-                        <span>{selectedPet.stat_con}</span>
-                      </div>
-                      <div className="flex justify-between col-span-2">
-                        <span className="text-blue-400">INT</span>
-                        <span>{selectedPet.stat_int}</span>
+                        <span className="text-green-400">순발력</span>
+                        <span>{selectedPet.stat_spd}</span>
                       </div>
                     </div>
                   </div>

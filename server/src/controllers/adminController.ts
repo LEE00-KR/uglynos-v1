@@ -57,6 +57,7 @@ export const getPets = async (_req: Request, res: Response, next: NextFunction) 
         spd: { min: parseFloat(row.growth_spd_min), max: parseFloat(row.growth_spd_max) },
       },
       totalStats: row.total_stats,
+      captureRate: row.capture_rate ?? 50,
       sprites: {
         idle: row.sprite_idle || '',
         attack: row.sprite_attack || '',
@@ -135,6 +136,7 @@ export const getPetById = async (req: Request, res: Response, next: NextFunction
         spd: { min: parseFloat(row.growth_spd_min), max: parseFloat(row.growth_spd_max) },
       },
       totalStats: row.total_stats,
+      captureRate: row.capture_rate ?? 50,
       sprites: {
         idle: row.sprite_idle || '',
         attack: row.sprite_attack || '',
@@ -196,6 +198,8 @@ export const createPet = async (req: Request, res: Response, next: NextFunction)
       growth_spd_max: body.growthRatesRange.spd.max,
       // Total stats
       total_stats: totalStats,
+      // Capture rate
+      capture_rate: body.captureRate ?? 50,
       // Sprites
       sprite_idle: body.sprites.idle,
       sprite_attack: body.sprites.attack,
@@ -275,6 +279,9 @@ export const updatePet = async (req: Request, res: Response, next: NextFunction)
       updates.sprite_defend = body.sprites.defend;
       updates.sprite_down = body.sprites.down;
       updates.sprite_walk = body.sprites.walk;
+    }
+    if (body.captureRate !== undefined) {
+      updates.capture_rate = body.captureRate;
     }
 
     const { error } = await supabase
