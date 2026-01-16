@@ -2,7 +2,24 @@
 -- 기존 스키마 + PRD 혼합
 
 -- =====================================================
--- 1. 페트 관리 (admin_pets)
+-- 1. 스킬 관리 (admin_skills) - PRD 방식
+-- 주의: admin_pet_skills에서 참조하므로 먼저 생성
+-- =====================================================
+CREATE TABLE IF NOT EXISTS admin_skills (
+  id VARCHAR(50) PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  cost INTEGER NOT NULL CHECK (cost >= 0),
+
+  -- 스킬 구성 요소 (JSON 배열)
+  -- 예: [{"type": "attack"}, {"type": "attackPercent", "percent": 150}]
+  components JSONB NOT NULL DEFAULT '[]',
+
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- =====================================================
+-- 2. 페트 관리 (admin_pets)
 -- =====================================================
 CREATE TABLE IF NOT EXISTS admin_pets (
   id VARCHAR(50) PRIMARY KEY,
@@ -50,22 +67,6 @@ CREATE TABLE IF NOT EXISTS admin_pet_skills (
 );
 
 CREATE INDEX IF NOT EXISTS idx_admin_pet_skills_pet_id ON admin_pet_skills(pet_id);
-
--- =====================================================
--- 2. 스킬 관리 (admin_skills) - PRD 방식
--- =====================================================
-CREATE TABLE IF NOT EXISTS admin_skills (
-  id VARCHAR(50) PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  cost INTEGER NOT NULL CHECK (cost >= 0),
-
-  -- 스킬 구성 요소 (JSON 배열)
-  -- 예: [{"type": "attack"}, {"type": "attackPercent", "percent": 150}]
-  components JSONB NOT NULL DEFAULT '[]',
-
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
 
 -- =====================================================
 -- 3. 스테이지 단계 관리 (admin_stage_groups) - PRD 방식
