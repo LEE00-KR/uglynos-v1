@@ -1,229 +1,281 @@
 import Phaser from 'phaser';
-import { getSocket } from '../../services/socket';
+import { useGameStore } from '../../stores/gameStore';
 
 export class MainScene extends Phaser.Scene {
+  private characterSprite: Phaser.GameObjects.Container | null = null;
+  private petSprites: Phaser.GameObjects.Container[] = [];
+  private updateInterval: Phaser.Time.TimerEvent | null = null;
+
   constructor() {
     super({ key: 'MainScene' });
   }
 
   preload() {
-    // Load placeholder assets
-    this.load.setBaseURL('/assets');
-
     // Create placeholder graphics
     const graphics = this.make.graphics({ x: 0, y: 0 });
 
-    // Character placeholder
+    // Character placeholder (larger circle)
     graphics.fillStyle(0x4488ff);
-    graphics.fillCircle(32, 32, 24);
-    graphics.generateTexture('character', 64, 64);
-
-    // Ground placeholder
+    graphics.fillCircle(40, 40, 35);
+    graphics.generateTexture('character_sprite', 80, 80);
     graphics.clear();
-    graphics.fillStyle(0x228b22);
-    graphics.fillRect(0, 0, 64, 64);
-    graphics.generateTexture('ground', 64, 64);
+
+    // Pet placeholder (smaller circle)
+    graphics.fillStyle(0x44cc88);
+    graphics.fillCircle(25, 25, 20);
+    graphics.generateTexture('pet_sprite', 50, 50);
+    graphics.clear();
+
+    // Ground/platform
+    graphics.fillGradientStyle(0x3a3a4e, 0x3a3a4e, 0x2a2a3e, 0x2a2a3e);
+    graphics.fillRoundedRect(0, 0, 400, 30, 15);
+    graphics.generateTexture('ground_platform', 400, 30);
 
     graphics.destroy();
   }
 
   create() {
-    // Background
+    // Background gradient
     const bg = this.add.graphics();
-    bg.fillGradientStyle(0x1a2a3e, 0x1a2a3e, 0x0f1a2f, 0x0f1a2f);
+    bg.fillGradientStyle(0x1a2a4e, 0x1a2a4e, 0x0f1a2f, 0x0f1a2f);
     bg.fillRect(0, 0, 1024, 576);
 
-    // Title
-    this.add.text(512, 100, 'Prehistoric Life', {
-      fontSize: '48px',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 4,
-    }).setOrigin(0.5);
+    // Add some ambient decorations (stars/particles)
+    this.createAmbientEffects();
 
-    this.add.text(512, 160, '원시 생활', {
-      fontSize: '24px',
-      color: '#aaaaaa',
-    }).setOrigin(0.5);
+    // Create ground platform
+    this.add.image(512, 400, 'ground_platform').setAlpha(0.7);
 
-    // Village area
-    this.createVillageArea();
+    // Create character and pets display
+    this.createCharacterDisplay();
 
-    // Stage selection area
-    this.createStageArea();
-
-    // Info panel
-    this.createInfoPanel();
-  }
-
-  private createVillageArea() {
-    // Village section title
-    this.add.text(200, 220, '마을', {
-      fontSize: '20px',
-      color: '#ffcc00',
-      stroke: '#000000',
-      strokeThickness: 2,
-    }).setOrigin(0.5);
-
-    const villageButtons = [
-      { label: '상점', icon: '🏪', action: 'shop' },
-      { label: '대장간', icon: '⚒️', action: 'blacksmith' },
-      { label: '펫 관리', icon: '🐾', action: 'pet' },
-      { label: '장비', icon: '⚔️', action: 'equipment' },
-    ];
-
-    villageButtons.forEach((btn, index) => {
-      const x = 100 + (index % 2) * 120;
-      const y = 280 + Math.floor(index / 2) * 80;
-
-      const button = this.add.rectangle(x, y, 100, 60, 0x2a3a4e, 0.9)
-        .setInteractive({ useHandCursor: true })
-        .on('pointerover', () => {
-          button.setStrokeStyle(2, 0xffcc00);
-          button.setFillStyle(0x3a4a5e);
-        })
-        .on('pointerout', () => {
-          button.setStrokeStyle(0);
-          button.setFillStyle(0x2a3a4e);
-        })
-        .on('pointerdown', () => this.showComingSoon(btn.label));
-
-      this.add.text(x, y - 10, btn.icon, {
-        fontSize: '24px',
-      }).setOrigin(0.5);
-
-      this.add.text(x, y + 20, btn.label, {
-        fontSize: '12px',
-        color: '#ffffff',
-      }).setOrigin(0.5);
+    // Update display periodically to sync with store
+    this.updateInterval = this.time.addEvent({
+      delay: 500,
+      callback: this.updateDisplay,
+      callbackScope: this,
+      loop: true,
     });
+
+    // Initial update
+    this.updateDisplay();
   }
 
-  private createStageArea() {
-    // Stage section title
-    this.add.text(650, 220, '스테이지 선택', {
-      fontSize: '20px',
-      color: '#ffcc00',
-      stroke: '#000000',
-      strokeThickness: 2,
-    }).setOrigin(0.5);
+  private createAmbientEffects() {
+    // Create floating particles/stars
+    for (let i = 0; i < 30; i++) {
+      const x = Phaser.Math.Between(0, 1024);
+      const y = Phaser.Math.Between(0, 300);
+      const star = this.add.circle(x, y, Phaser.Math.Between(1, 3), 0xffffff, Phaser.Math.FloatBetween(0.1, 0.5));
 
-    // Stage buttons
-    const stages = [
-      { id: 1, name: '숲의 입구', level: '1-3', unlocked: true },
-      { id: 2, name: '깊은 숲', level: '4-7', unlocked: true },
-      { id: 3, name: '동굴 입구', level: '8-12', unlocked: true },
-      { id: 4, name: '수정 동굴', level: '13-18', unlocked: true },
-      { id: 5, name: '용암 지대', level: '19-25', unlocked: true },
-      { id: 6, name: '???', level: '???', unlocked: false },
+      // Twinkle animation
+      this.tweens.add({
+        targets: star,
+        alpha: { from: star.alpha, to: star.alpha * 0.3 },
+        duration: Phaser.Math.Between(1000, 3000),
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    }
+  }
+
+  private createCharacterDisplay() {
+    // Character container will be created/updated in updateDisplay
+    this.characterSprite = null;
+    this.petSprites = [];
+  }
+
+  private updateDisplay() {
+    const { character, pets } = useGameStore.getState();
+
+    // Update or create character sprite
+    if (character) {
+      if (!this.characterSprite) {
+        this.characterSprite = this.createCharacterContainer(character, 512, 320);
+      } else {
+        this.updateCharacterContainer(this.characterSprite, character);
+      }
+    }
+
+    // Get pets in party (party_slot !== null)
+    const partyPets = pets.filter(p => p.party_slot !== null).sort((a, b) => (a.party_slot || 0) - (b.party_slot || 0));
+
+    // Update or create pet sprites
+    const petPositions = [
+      { x: 350, y: 350 },
+      { x: 674, y: 350 },
+      { x: 512, y: 420 },
     ];
 
-    stages.forEach((stage, index) => {
-      const x = 500 + (index % 3) * 150;
-      const y = 300 + Math.floor(index / 3) * 100;
+    // Remove excess pet sprites
+    while (this.petSprites.length > partyPets.length) {
+      const sprite = this.petSprites.pop();
+      sprite?.destroy();
+    }
 
-      const button = this.add.rectangle(x, y, 130, 70, stage.unlocked ? 0x2e4a3e : 0x333333, 0.9)
-        .setInteractive({ useHandCursor: stage.unlocked })
-        .on('pointerover', () => {
-          if (stage.unlocked) {
-            button.setStrokeStyle(2, 0x00ff88);
-            button.setFillStyle(0x3e5a4e);
-          }
-        })
-        .on('pointerout', () => {
-          button.setStrokeStyle(0);
-          button.setFillStyle(stage.unlocked ? 0x2e4a3e : 0x333333);
-        })
-        .on('pointerdown', () => {
-          if (stage.unlocked) this.startBattle(stage.id);
-        });
-
-      this.add.text(x, y - 15, stage.name, {
-        fontSize: '14px',
-        color: stage.unlocked ? '#ffffff' : '#666666',
-      }).setOrigin(0.5);
-
-      this.add.text(x, y + 10, `Lv.${stage.level}`, {
-        fontSize: '12px',
-        color: stage.unlocked ? '#88ff88' : '#444444',
-      }).setOrigin(0.5);
-
-      if (!stage.unlocked) {
-        this.add.text(x, y + 25, '🔒', {
-          fontSize: '16px',
-        }).setOrigin(0.5);
+    // Update or create pet sprites
+    partyPets.forEach((pet, index) => {
+      if (index < petPositions.length) {
+        if (this.petSprites[index]) {
+          this.updatePetContainer(this.petSprites[index], pet);
+        } else {
+          const container = this.createPetContainer(pet, petPositions[index].x, petPositions[index].y);
+          this.petSprites.push(container);
+        }
       }
     });
   }
 
-  private createInfoPanel() {
-    // Info panel at bottom
-    const panel = this.add.rectangle(512, 540, 1000, 50, 0x1a1a2e, 0.9);
-    panel.setStrokeStyle(1, 0x333333);
+  private createCharacterContainer(character: { nickname: string; level: number; element_primary: string }, x: number, y: number): Phaser.GameObjects.Container {
+    const container = this.add.container(x, y);
 
-    this.add.text(30, 540, '💡 스테이지를 클릭하여 전투를 시작하세요. 레벨 1 몬스터는 포획할 수 있습니다!', {
-      fontSize: '14px',
-      color: '#888888',
-    }).setOrigin(0, 0.5);
-  }
+    // Element color mapping
+    const elementColors: { [key: string]: number } = {
+      earth: 0x8b4513,
+      wind: 0x90ee90,
+      fire: 0xff4500,
+      water: 0x1e90ff,
+    };
 
-  private showComingSoon(feature: string) {
-    // Show a temporary message
-    const msg = this.add.text(512, 288, `${feature} - 준비 중...`, {
-      fontSize: '24px',
-      color: '#ffcc00',
-      backgroundColor: '#000000',
-      padding: { x: 20, y: 10 },
+    const color = elementColors[character.element_primary] || 0x4488ff;
+
+    // Character body (circle)
+    const body = this.add.circle(0, 0, 40, color);
+    body.setStrokeStyle(3, 0xffffff);
+
+    // Element icon
+    const elementIcons: { [key: string]: string } = {
+      earth: '🌍',
+      wind: '🌪️',
+      fire: '🔥',
+      water: '💧',
+    };
+    const elementIcon = this.add.text(0, -5, elementIcons[character.element_primary] || '✨', {
+      fontSize: '28px',
     }).setOrigin(0.5);
 
+    // Name label
+    const nameLabel = this.add.text(0, 55, character.nickname, {
+      fontSize: '16px',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 3,
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    // Level badge
+    const levelBg = this.add.circle(30, -30, 15, 0x000000, 0.7);
+    const levelText = this.add.text(30, -30, `${character.level}`, {
+      fontSize: '14px',
+      color: '#ffcc00',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    container.add([body, elementIcon, nameLabel, levelBg, levelText]);
+
+    // Idle animation (gentle bounce)
     this.tweens.add({
-      targets: msg,
-      alpha: 0,
-      y: 250,
+      targets: container,
+      y: y - 5,
       duration: 1500,
-      onComplete: () => msg.destroy(),
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
     });
+
+    return container;
   }
 
-  startBattle(stageId: number) {
-    const socket = getSocket();
+  private updateCharacterContainer(container: Phaser.GameObjects.Container, character: { nickname: string; level: number }) {
+    // Update level and name if needed
+    const nameLabel = container.getAt(2) as Phaser.GameObjects.Text;
+    const levelText = container.getAt(4) as Phaser.GameObjects.Text;
 
-    if (socket) {
-      // Show loading indicator
-      const loading = this.add.text(512, 288, '전투 준비 중...', {
-        fontSize: '20px',
-        color: '#ffffff',
-        backgroundColor: '#000000aa',
-        padding: { x: 20, y: 10 },
-      }).setOrigin(0.5);
+    if (nameLabel && nameLabel.text !== character.nickname) {
+      nameLabel.setText(character.nickname);
+    }
+    if (levelText && levelText.text !== `${character.level}`) {
+      levelText.setText(`${character.level}`);
+    }
+  }
 
-      // Request battle start via socket
-      socket.emit('battle:start', { stageId });
+  private createPetContainer(pet: { nickname: string | null; level: number; template: { name: string; element_primary: string } }, x: number, y: number): Phaser.GameObjects.Container {
+    const container = this.add.container(x, y);
 
-      // The GamePage will handle the 'battle:started' event and switch to BattleScene
-      // We'll remove the loading message after a timeout if not handled
-      this.time.delayedCall(5000, () => {
-        if (loading.active) {
-          loading.destroy();
-          const error = this.add.text(512, 288, '전투 시작 실패. 다시 시도해주세요.', {
-            fontSize: '16px',
-            color: '#ff4444',
-            backgroundColor: '#000000',
-            padding: { x: 20, y: 10 },
-          }).setOrigin(0.5);
+    // Element color mapping
+    const elementColors: { [key: string]: number } = {
+      earth: 0x8b4513,
+      wind: 0x90ee90,
+      fire: 0xff4500,
+      water: 0x1e90ff,
+    };
 
-          this.tweens.add({
-            targets: error,
-            alpha: 0,
-            duration: 2000,
-            delay: 2000,
-            onComplete: () => error.destroy(),
-          });
-        }
-      });
-    } else {
-      // Fallback: start battle scene directly for testing
-      this.scene.start('BattleScene', { stageId });
+    const color = elementColors[pet.template.element_primary] || 0x44cc88;
+
+    // Pet body (smaller circle)
+    const body = this.add.circle(0, 0, 28, color);
+    body.setStrokeStyle(2, 0xffffff);
+
+    // Element icon (smaller)
+    const elementIcons: { [key: string]: string } = {
+      earth: '🌍',
+      wind: '🌪️',
+      fire: '🔥',
+      water: '💧',
+    };
+    const elementIcon = this.add.text(0, -3, elementIcons[pet.template.element_primary] || '🐾', {
+      fontSize: '20px',
+    }).setOrigin(0.5);
+
+    // Name label
+    const displayName = pet.nickname || pet.template.name;
+    const nameLabel = this.add.text(0, 42, displayName, {
+      fontSize: '12px',
+      color: '#aaffaa',
+      stroke: '#000000',
+      strokeThickness: 2,
+    }).setOrigin(0.5);
+
+    // Level badge
+    const levelBg = this.add.circle(20, -20, 12, 0x000000, 0.7);
+    const levelText = this.add.text(20, -20, `${pet.level}`, {
+      fontSize: '11px',
+      color: '#88ff88',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    container.add([body, elementIcon, nameLabel, levelBg, levelText]);
+
+    // Idle animation (different timing for variety)
+    this.tweens.add({
+      targets: container,
+      y: y - 4,
+      duration: 1200 + Math.random() * 600,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+
+    return container;
+  }
+
+  private updatePetContainer(container: Phaser.GameObjects.Container, pet: { nickname: string | null; level: number; template: { name: string } }) {
+    const nameLabel = container.getAt(2) as Phaser.GameObjects.Text;
+    const levelText = container.getAt(4) as Phaser.GameObjects.Text;
+
+    const displayName = pet.nickname || pet.template.name;
+    if (nameLabel && nameLabel.text !== displayName) {
+      nameLabel.setText(displayName);
+    }
+    if (levelText && levelText.text !== `${pet.level}`) {
+      levelText.setText(`${pet.level}`);
+    }
+  }
+
+  shutdown() {
+    if (this.updateInterval) {
+      this.updateInterval.destroy();
     }
   }
 }
