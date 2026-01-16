@@ -11,6 +11,7 @@ export interface Shop {
   icon_url: string;
 }
 
+// 4스탯 시스템: HP, ATK, DEF, SPD
 export interface ShopItem {
   id: number;
   shop_id: number;
@@ -28,11 +29,10 @@ export interface ShopItem {
     buy_price: number;
     sell_price: number;
     icon_url: string;
-    stat_str: number;
-    stat_agi: number;
-    stat_vit: number;
-    stat_con: number;
-    stat_int: number;
+    stat_hp: number;
+    stat_atk: number;
+    stat_def: number;
+    stat_spd: number;
   };
 }
 

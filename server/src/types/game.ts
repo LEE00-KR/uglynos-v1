@@ -1,13 +1,12 @@
 // Element types
 export type ElementType = 'earth' | 'wind' | 'fire' | 'water';
 
-// Base stats interface
+// Base stats interface - 4스탯 시스템: HP, ATK, DEF, SPD
 export interface BaseStats {
-  str: number;
-  agi: number;
-  vit: number;
-  con: number;
-  int: number;
+  hp: number;
+  atk: number;
+  def: number;
+  spd: number;
 }
 
 // Derived stats interface

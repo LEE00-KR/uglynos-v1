@@ -119,14 +119,13 @@ class BattleService {
     // Create units map
     const units = new Map<string, BattleUnit>();
 
-    // Character unit
+    // Character unit - 4스탯 시스템: HP, ATK, DEF, SPD
     const charStats = calculateDerivedStats(
       {
-        str: character.stat_str,
-        agi: character.stat_agi,
-        vit: character.stat_vit,
-        con: character.stat_con,
-        int: character.stat_int,
+        hp: character.stat_hp,
+        atk: character.stat_atk,
+        def: character.stat_def,
+        spd: character.stat_spd,
       },
       character.level
     );
@@ -145,7 +144,7 @@ class BattleService {
         def: charStats.def,
         spd: charStats.spd,
         eva: charStats.eva,
-        int: character.stat_int,
+        int: 10, // 고정값
       },
       element: {
         primary: character.element_primary as ElementType,
@@ -157,15 +156,14 @@ class BattleService {
       isDefending: false,
     });
 
-    // Pet units
+    // Pet units - 4스탯 시스템: HP, ATK, DEF, SPD
     for (const pet of pets) {
       const petStats = calculateDerivedStats(
         {
-          str: pet.stat_str,
-          agi: pet.stat_agi,
-          vit: pet.stat_vit,
-          con: pet.stat_con,
-          int: pet.stat_int,
+          hp: pet.stat_hp,
+          atk: pet.stat_atk,
+          def: pet.stat_def,
+          spd: pet.stat_spd,
         },
         pet.level
       );
@@ -186,7 +184,7 @@ class BattleService {
           def: petStats.def,
           spd: petStats.spd,
           eva: petStats.eva,
-          int: pet.stat_int,
+          int: 10, // 고정값
         },
         element: {
           primary: pet.pet_templates.element_primary as ElementType,
@@ -202,7 +200,7 @@ class BattleService {
       });
     }
 
-    // Enemy units
+    // Enemy units - 4스탯 시스템: HP, ATK, DEF, SPD
     if (stageMonsters) {
       for (const sm of stageMonsters) {
         const m = sm.monster_templates;
@@ -229,11 +227,11 @@ class BattleService {
             mp,
             maxMp: mp,
             stats: {
-              atk: m.base_str + m.growth_str * (lvl - 1),
-              def: m.base_con + m.growth_con * (lvl - 1),
-              spd: m.base_agi + m.growth_agi * (lvl - 1),
-              eva: m.base_agi * 0.2,
-              int: m.base_int + (m.growth_int || 0) * (lvl - 1),
+              atk: m.base_atk + m.growth_atk * (lvl - 1),
+              def: m.base_def + m.growth_def * (lvl - 1),
+              spd: m.base_spd + m.growth_spd * (lvl - 1),
+              eva: m.base_spd * 0.15,
+              int: 10, // 고정값
             },
             element: {
               primary: m.element_primary as ElementType,
@@ -372,7 +370,7 @@ class BattleService {
               isRareColor: target.isRareColor || false,
             };
 
-            // Save captured pet to DB
+            // Save captured pet to DB - 4스탯 시스템
             const characterId = battleState.participants[0];
             const petData = captureManager.createCapturedPet(target, characterId);
             const { error: insertError } = await supabase.from('pets').insert({
@@ -381,16 +379,15 @@ class BattleService {
               nickname: petData.nickname,
               level: petData.level,
               exp: petData.exp,
-              stat_str: petData.stat_str,
-              stat_agi: petData.stat_agi,
-              stat_vit: petData.stat_vit,
-              stat_con: petData.stat_con,
-              stat_int: petData.stat_int,
-              growth_str: petData.growth_str,
-              growth_agi: petData.growth_agi,
-              growth_vit: petData.growth_vit,
-              growth_con: petData.growth_con,
-              growth_int: petData.growth_int,
+              stat_hp: petData.stat_hp,
+              stat_atk: petData.stat_atk,
+              stat_def: petData.stat_def,
+              stat_spd: petData.stat_spd,
+              current_hp: petData.stat_hp,
+              growth_hp: petData.growth_hp,
+              growth_atk: petData.growth_atk,
+              growth_def: petData.growth_def,
+              growth_spd: petData.growth_spd,
               loyalty: petData.loyalty,
               is_rare_color: petData.isRareColor,
               is_starter: petData.isStarter,

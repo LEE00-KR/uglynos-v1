@@ -2,18 +2,19 @@ import type { BaseStats, DerivedStats, ElementType, WeaponType } from '../types/
 
 /**
  * Calculate derived stats from base stats
+ * 4스탯 시스템: HP, ATK, DEF, SPD를 직접 사용
  */
 export const calculateDerivedStats = (
   baseStats: BaseStats,
   level: number
 ): DerivedStats => {
   return {
-    maxHp: 100 + baseStats.vit * 10 + level * 5,
-    maxMp: 50 + baseStats.int * 5 + level * 2,
-    atk: 10 + baseStats.str * 2 + Math.floor(level * 1.5),
-    def: 5 + baseStats.con * 2 + Math.floor(level * 0.8),
-    spd: 10 + baseStats.agi * 2,
-    eva: baseStats.agi * 0.3,
+    maxHp: baseStats.hp + level * 5,
+    maxMp: 50 + level * 2,
+    atk: baseStats.atk + Math.floor(level * 1.5),
+    def: baseStats.def + Math.floor(level * 0.8),
+    spd: baseStats.spd,
+    eva: baseStats.spd * 0.15,
   };
 };
 
@@ -104,18 +105,18 @@ export const getWeaponHitCount = (
 };
 
 /**
- * Weapon stat penalties
+ * Weapon stat penalties (4스탯 시스템: SPD, DEF 페널티)
  */
 export const getWeaponPenalty = (
   weaponType: WeaponType
-): { agi: number; con: number } => {
-  const penalties: Record<WeaponType, { agi: number; con: number }> = {
-    sword: { agi: -10, con: 0 },
-    club: { agi: 0, con: 0 },
-    axe: { agi: -20, con: -20 },
-    spear: { agi: -20, con: 0 },
-    claw: { agi: 0, con: 0 },
-    bow: { agi: 0, con: 0 },
+): { spd: number; def: number } => {
+  const penalties: Record<WeaponType, { spd: number; def: number }> = {
+    sword: { spd: -10, def: 0 },
+    club: { spd: 0, def: 0 },
+    axe: { spd: -20, def: -20 },
+    spear: { spd: -20, def: 0 },
+    claw: { spd: 0, def: 0 },
+    bow: { spd: 0, def: 0 },
   };
   return penalties[weaponType];
 };
@@ -267,27 +268,26 @@ export const calculateCatchRate = (
 };
 
 /**
- * Generate random pet stats on capture
+ * Generate random pet stats on capture (4스탯 시스템)
+ * HP: 10 + (0~10), ATK/DEF/SPD: 5 + (0~5)
  */
 export const generateRandomPetStats = (): BaseStats => {
   return {
-    str: 5 + Math.floor(Math.random() * 6),
-    agi: 5 + Math.floor(Math.random() * 6),
-    vit: 5 + Math.floor(Math.random() * 6),
-    con: 5 + Math.floor(Math.random() * 6),
-    int: 5 + Math.floor(Math.random() * 6),
+    hp: 10 + Math.floor(Math.random() * 11),
+    atk: 5 + Math.floor(Math.random() * 6),
+    def: 5 + Math.floor(Math.random() * 6),
+    spd: 5 + Math.floor(Math.random() * 6),
   };
 };
 
 /**
- * Generate random pet growth rates (80-120%)
+ * Generate random pet growth rates (80-120%) - 4스탯 시스템
  */
 export const generateRandomGrowthRates = () => {
   return {
-    str: 80 + Math.floor(Math.random() * 41),
-    agi: 80 + Math.floor(Math.random() * 41),
-    vit: 80 + Math.floor(Math.random() * 41),
-    con: 80 + Math.floor(Math.random() * 41),
-    int: 80 + Math.floor(Math.random() * 41),
+    hp: 80 + Math.floor(Math.random() * 41),
+    atk: 80 + Math.floor(Math.random() * 41),
+    def: 80 + Math.floor(Math.random() * 41),
+    spd: 80 + Math.floor(Math.random() * 41),
   };
 };

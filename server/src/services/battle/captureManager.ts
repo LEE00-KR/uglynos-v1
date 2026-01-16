@@ -12,22 +12,21 @@ interface CaptureResult {
   reason?: string;
 }
 
+// 4스탯 시스템: HP, ATK, DEF, SPD
 interface CapturedPetData {
   templateId: number;
   characterId: string;
   nickname: string | null;
   level: number;
   exp: number;
-  stat_str: number;
-  stat_agi: number;
-  stat_vit: number;
-  stat_con: number;
-  stat_int: number;
-  growth_str: number;
-  growth_agi: number;
-  growth_vit: number;
-  growth_con: number;
-  growth_int: number;
+  stat_hp: number;
+  stat_atk: number;
+  stat_def: number;
+  stat_spd: number;
+  growth_hp: number;
+  growth_atk: number;
+  growth_def: number;
+  growth_spd: number;
   loyalty: number;
   isRareColor: boolean;
   isStarter: boolean;
@@ -100,29 +99,27 @@ export class CaptureManager {
   }
 
   /**
-   * Generate random pet stats
-   * Each stat: 5 + (0~5) random
+   * Generate random pet stats (4스탯 시스템)
+   * HP: 10 + (0~10), ATK/DEF/SPD: 5 + (0~5)
    */
   private generateRandomStats() {
     return {
-      stat_str: 5 + Math.floor(Math.random() * 6),
-      stat_agi: 5 + Math.floor(Math.random() * 6),
-      stat_vit: 5 + Math.floor(Math.random() * 6),
-      stat_con: 5 + Math.floor(Math.random() * 6),
-      stat_int: 5 + Math.floor(Math.random() * 6),
+      stat_hp: 10 + Math.floor(Math.random() * 11),
+      stat_atk: 5 + Math.floor(Math.random() * 6),
+      stat_def: 5 + Math.floor(Math.random() * 6),
+      stat_spd: 5 + Math.floor(Math.random() * 6),
     };
   }
 
   /**
-   * Generate random growth rates (80~120%)
+   * Generate random growth rates (80~120%) - 4스탯 시스템
    */
   private generateGrowthRates() {
     return {
-      growth_str: 80 + Math.floor(Math.random() * 41),
-      growth_agi: 80 + Math.floor(Math.random() * 41),
-      growth_vit: 80 + Math.floor(Math.random() * 41),
-      growth_con: 80 + Math.floor(Math.random() * 41),
-      growth_int: 80 + Math.floor(Math.random() * 41),
+      growth_hp: 80 + Math.floor(Math.random() * 41),
+      growth_atk: 80 + Math.floor(Math.random() * 41),
+      growth_def: 80 + Math.floor(Math.random() * 41),
+      growth_spd: 80 + Math.floor(Math.random() * 41),
     };
   }
 
