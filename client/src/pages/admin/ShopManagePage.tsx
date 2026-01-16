@@ -159,10 +159,6 @@ export default function ShopManagePage() {
     });
   };
 
-  const getCategoryLabel = (category: ShopCategory) => {
-    return SHOP_CATEGORIES.find((c) => c.value === category)?.label || category;
-  };
-
   const filteredItems = (category: ShopCategory) => {
     return shopItems.filter((item) => item.category === category);
   };

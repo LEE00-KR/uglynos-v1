@@ -21,7 +21,7 @@ const generateId = (prefix: string) => `${prefix}_${randomUUID().split('-')[0]}`
 // Pet Management
 // =====================================================
 
-export const getPets = async (req: Request, res: Response, next: NextFunction) => {
+export const getPets = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const { data, error } = await supabase
       .from('admin_pets')
@@ -93,7 +93,8 @@ export const getPetById = async (req: Request, res: Response, next: NextFunction
       .single();
 
     if (error || !row) {
-      return res.status(404).json({ success: false, error: { message: 'Pet not found' } });
+      res.status(404).json({ success: false, error: { message: 'Pet not found' } });
+      return;
     }
 
     const { data: skillData } = await supabase
@@ -273,7 +274,7 @@ export const deletePet = async (req: Request, res: Response, next: NextFunction)
 // Skill Management
 // =====================================================
 
-export const getSkills = async (req: Request, res: Response, next: NextFunction) => {
+export const getSkills = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const { data, error } = await supabase
       .from('admin_skills')
@@ -308,7 +309,8 @@ export const getSkillById = async (req: Request, res: Response, next: NextFuncti
       .single();
 
     if (error || !row) {
-      return res.status(404).json({ success: false, error: { message: 'Skill not found' } });
+      res.status(404).json({ success: false, error: { message: 'Skill not found' } });
+      return;
     }
 
     const skill: AdminSkill = {
@@ -387,7 +389,7 @@ export const deleteSkill = async (req: Request, res: Response, next: NextFunctio
 // Stage Group Management
 // =====================================================
 
-export const getStageGroups = async (req: Request, res: Response, next: NextFunction) => {
+export const getStageGroups = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const { data, error } = await supabase
       .from('admin_stage_groups')
@@ -422,7 +424,8 @@ export const getStageGroupById = async (req: Request, res: Response, next: NextF
       .single();
 
     if (error || !row) {
-      return res.status(404).json({ success: false, error: { message: 'Stage group not found' } });
+      res.status(404).json({ success: false, error: { message: 'Stage group not found' } });
+      return;
     }
 
     const stageGroup: AdminStageGroup = {
@@ -501,7 +504,7 @@ export const deleteStageGroup = async (req: Request, res: Response, next: NextFu
 // Individual Stage Management
 // =====================================================
 
-export const getStages = async (req: Request, res: Response, next: NextFunction) => {
+export const getStages = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const { data, error } = await supabase
       .from('admin_stages')
@@ -545,7 +548,8 @@ export const getStageById = async (req: Request, res: Response, next: NextFuncti
       .single();
 
     if (error || !row) {
-      return res.status(404).json({ success: false, error: { message: 'Stage not found' } });
+      res.status(404).json({ success: false, error: { message: 'Stage not found' } });
+      return;
     }
 
     const stage: AdminStage = {
@@ -649,7 +653,7 @@ export const deleteStage = async (req: Request, res: Response, next: NextFunctio
 // Shop Item Management (재화: stone 단일)
 // =====================================================
 
-export const getShopItems = async (req: Request, res: Response, next: NextFunction) => {
+export const getShopItems = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const { data, error } = await supabase
       .from('admin_shop_items')
@@ -690,7 +694,8 @@ export const getShopItemById = async (req: Request, res: Response, next: NextFun
       .single();
 
     if (error || !row) {
-      return res.status(404).json({ success: false, error: { message: 'Shop item not found' } });
+      res.status(404).json({ success: false, error: { message: 'Shop item not found' } });
+      return;
     }
 
     const shopItem: AdminShopItem = {

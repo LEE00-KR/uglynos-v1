@@ -224,11 +224,6 @@ export default function StageManagePage() {
     setFormData({ ...formData, drops: newDrops });
   };
 
-  const getPetName = (petId: string) => {
-    const pet = pets.find((p) => p.id === petId);
-    return pet?.name || petId;
-  };
-
   const getSkillName = (skillId: string) => {
     if (skillId === 'attack') return '공격';
     if (skillId === 'defend') return '방어';
