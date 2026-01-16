@@ -134,11 +134,12 @@ export default function PetManagePage() {
     });
   };
 
-  const handleBaseStatRangeChange = (stat: keyof AdminPetBaseStatsRange, field: 'min' | 'max', value: number) => {
-    const newRange = { ...formData.baseStatsRange[stat], [field]: value };
+  const handleBaseStatRangeChange = (stat: keyof AdminPetBaseStatsRange, field: 'min' | 'max', value: string) => {
+    const numValue = value === '' ? 0 : parseInt(value);
+    const newRange = { ...formData.baseStatsRange[stat], [field]: numValue };
     const newBaseStatsRange = { ...formData.baseStatsRange, [stat]: newRange };
     // Recalculate total stats
-    const totalStats = newBaseStatsRange.hp.max + newBaseStatsRange.atk.max + newBaseStatsRange.def.max + newBaseStatsRange.spd.max;
+    const totalStats = (newBaseStatsRange.hp.max || 0) + (newBaseStatsRange.atk.max || 0) + (newBaseStatsRange.def.max || 0) + (newBaseStatsRange.spd.max || 0);
     setFormData({
       ...formData,
       baseStatsRange: newBaseStatsRange,
@@ -146,19 +147,39 @@ export default function PetManagePage() {
     });
   };
 
-  const handleBonusPoolChange = (stat: keyof AdminPetBonusPool, value: number) => {
+  const handleBonusPoolChange = (stat: keyof AdminPetBonusPool, value: string) => {
+    const numValue = value === '' ? 0 : parseInt(value);
     setFormData({
       ...formData,
-      bonusPool: { ...formData.bonusPool, [stat]: value },
+      bonusPool: { ...formData.bonusPool, [stat]: numValue },
     });
   };
 
-  const handleGrowthRateRangeChange = (stat: keyof AdminPetGrowthRatesRange, field: 'min' | 'max', value: number) => {
-    const newRange = { ...formData.growthRatesRange[stat], [field]: value };
+  const handleGrowthRateRangeChange = (stat: keyof AdminPetGrowthRatesRange, field: 'min' | 'max', value: string) => {
+    const numValue = value === '' ? 0 : parseFloat(value);
+    const newRange = { ...formData.growthRatesRange[stat], [field]: numValue };
     setFormData({
       ...formData,
       growthRatesRange: { ...formData.growthRatesRange, [stat]: newRange },
     });
+  };
+
+  // Validation helpers
+  const isValidBaseStat = (stat: keyof AdminPetBaseStatsRange, field: 'min' | 'max') => {
+    const value = formData.baseStatsRange[stat][field];
+    const max = stat === 'hp' ? 999 : 100;
+    return value >= 1 && value <= max;
+  };
+
+  const isValidBonusPool = (stat: keyof AdminPetBonusPool) => {
+    const value = formData.bonusPool[stat];
+    const max = stat === 'hp' ? 50 : 10;
+    return value >= 0 && value <= max;
+  };
+
+  const isValidGrowthRate = (stat: keyof AdminPetGrowthRatesRange, field: 'min' | 'max') => {
+    const value = formData.growthRatesRange[stat][field];
+    return value >= 1 && value <= 3;
   };
 
   const handleSpriteChange = (motion: keyof AdminPetSprites, url: string) => {
@@ -424,22 +445,26 @@ export default function PetManagePage() {
                             type="number"
                             min="1"
                             max={stat === 'hp' ? 999 : 100}
-                            value={formData.baseStatsRange[stat].min}
-                            onChange={(e) => handleBaseStatRangeChange(stat, 'min', parseInt(e.target.value) || 1)}
+                            value={formData.baseStatsRange[stat].min || ''}
+                            onChange={(e) => handleBaseStatRangeChange(stat, 'min', e.target.value)}
                             disabled={!isEditing}
                             placeholder="최소"
-                            className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                            className={`flex-1 px-3 py-2 bg-gray-700 border rounded-lg text-white disabled:opacity-50 ${
+                              isEditing && !isValidBaseStat(stat, 'min') ? 'border-red-500' : 'border-gray-600'
+                            }`}
                           />
                           <span className="text-gray-400">~</span>
                           <input
                             type="number"
                             min="1"
                             max={stat === 'hp' ? 999 : 100}
-                            value={formData.baseStatsRange[stat].max}
-                            onChange={(e) => handleBaseStatRangeChange(stat, 'max', parseInt(e.target.value) || 1)}
+                            value={formData.baseStatsRange[stat].max || ''}
+                            onChange={(e) => handleBaseStatRangeChange(stat, 'max', e.target.value)}
                             disabled={!isEditing}
                             placeholder="최대"
-                            className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                            className={`flex-1 px-3 py-2 bg-gray-700 border rounded-lg text-white disabled:opacity-50 ${
+                              isEditing && !isValidBaseStat(stat, 'max') ? 'border-red-500' : 'border-gray-600'
+                            }`}
                           />
                         </div>
                       </div>
@@ -459,9 +484,11 @@ export default function PetManagePage() {
                           min="0"
                           max={stat === 'hp' ? 50 : 10}
                           value={formData.bonusPool[stat]}
-                          onChange={(e) => handleBonusPoolChange(stat, parseInt(e.target.value) || 0)}
+                          onChange={(e) => handleBonusPoolChange(stat, e.target.value)}
                           disabled={!isEditing}
-                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                          className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white disabled:opacity-50 ${
+                            isEditing && !isValidBonusPool(stat) ? 'border-red-500' : 'border-gray-600'
+                          }`}
                         />
                       </div>
                     ))}
@@ -486,11 +513,13 @@ export default function PetManagePage() {
                             min="1"
                             max="3"
                             step="0.05"
-                            value={formData.growthRatesRange[stat].min}
-                            onChange={(e) => handleGrowthRateRangeChange(stat, 'min', parseFloat(e.target.value) || 1)}
+                            value={formData.growthRatesRange[stat].min || ''}
+                            onChange={(e) => handleGrowthRateRangeChange(stat, 'min', e.target.value)}
                             disabled={!isEditing}
                             placeholder="최소"
-                            className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                            className={`flex-1 px-3 py-2 bg-gray-700 border rounded-lg text-white disabled:opacity-50 ${
+                              isEditing && !isValidGrowthRate(stat, 'min') ? 'border-red-500' : 'border-gray-600'
+                            }`}
                           />
                           <span className="text-gray-400">~</span>
                           <input
@@ -498,11 +527,13 @@ export default function PetManagePage() {
                             min="1"
                             max="3"
                             step="0.05"
-                            value={formData.growthRatesRange[stat].max}
-                            onChange={(e) => handleGrowthRateRangeChange(stat, 'max', parseFloat(e.target.value) || 1)}
+                            value={formData.growthRatesRange[stat].max || ''}
+                            onChange={(e) => handleGrowthRateRangeChange(stat, 'max', e.target.value)}
                             disabled={!isEditing}
                             placeholder="최대"
-                            className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                            className={`flex-1 px-3 py-2 bg-gray-700 border rounded-lg text-white disabled:opacity-50 ${
+                              isEditing && !isValidGrowthRate(stat, 'max') ? 'border-red-500' : 'border-gray-600'
+                            }`}
                           />
                         </div>
                       </div>
