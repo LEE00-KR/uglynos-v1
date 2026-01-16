@@ -1,25 +1,23 @@
-import type { BaseStats, DerivedStats, ElementType, WeaponType } from '../types/game.js';
+import type { BaseStats, ElementType, WeaponType } from '../types/game.js';
 
-/**
- * Calculate derived stats from base stats
- */
-export const calculateDerivedStats = (
-  baseStats: BaseStats,
-  level: number
-): DerivedStats => {
-  return {
-    maxHp: 100 + baseStats.vit * 10 + level * 5,
-    maxMp: 50 + baseStats.int * 5 + level * 2,
-    atk: 10 + baseStats.str * 2 + Math.floor(level * 1.5),
-    def: 5 + baseStats.con * 2 + Math.floor(level * 0.8),
-    spd: 10 + baseStats.agi * 2,
-    eva: baseStats.agi * 0.3,
-  };
+// =====================================================
+// 기력 상수
+// =====================================================
+export const MAX_ENERGY = 100;
+export const DEFAULT_ENERGY = 100;
+
+// =====================================================
+// 회피율 계산 (SPD 기반)
+// 최고 SPD 만렙에서 30% 이하
+// 공식: min(30, SPD * 0.15)
+// =====================================================
+export const calculateEvasionRate = (spd: number): number => {
+  return Math.min(30, spd * 0.15);
 };
 
-/**
- * Experience required for level up
- */
+// =====================================================
+// 경험치 테이블
+// =====================================================
 export const getRequiredExp = (level: number): number => {
   const earlyLevels: Record<number, number> = {
     1: 8,
@@ -43,18 +41,19 @@ export const getRequiredExp = (level: number): number => {
   }
 };
 
-/**
- * Calculate monster experience
- * Formula: Lv × (2 + Lv/20)
- */
+// =====================================================
+// 몬스터 경험치
+// 공식: Lv × (2 + Lv/20)
+// =====================================================
 export const calculateMonsterExp = (level: number, isBoss: boolean): number => {
   const base = level * (2 + level / 20);
   return Math.floor(isBoss ? base * 1.1 : base);
 };
 
-/**
- * Weapon accuracy by type
- */
+// =====================================================
+// 무기 관련 공식
+// =====================================================
+
 export const getWeaponAccuracy = (weaponType: WeaponType): number => {
   const accuracies: Record<WeaponType, number> = {
     sword: 90,
@@ -67,24 +66,18 @@ export const getWeaponAccuracy = (weaponType: WeaponType): number => {
   return accuracies[weaponType];
 };
 
-/**
- * Weapon damage multiplier by type
- */
 export const getWeaponMultiplier = (weaponType: WeaponType): number => {
   const multipliers: Record<WeaponType, number> = {
-    sword: 1.5, // 150%
-    club: 1.0, // 100%
-    axe: 2.0, // 200%
-    spear: 0.9, // 90% × 2
-    claw: 0.4, // 40% × 3
-    bow: 0.8, // 80% × random
+    sword: 1.5,   // 150%
+    club: 1.0,    // 100%
+    axe: 2.0,     // 200%
+    spear: 0.9,   // 90% × 2
+    claw: 0.4,    // 40% × 3
+    bow: 0.8,     // 80% × random
   };
   return multipliers[weaponType];
 };
 
-/**
- * Weapon hit count by type
- */
 export const getWeaponHitCount = (
   weaponType: WeaponType,
   enemyCount?: number
@@ -103,27 +96,25 @@ export const getWeaponHitCount = (
   }
 };
 
-/**
- * Weapon stat penalties
- */
 export const getWeaponPenalty = (
   weaponType: WeaponType
-): { agi: number; con: number } => {
-  const penalties: Record<WeaponType, { agi: number; con: number }> = {
-    sword: { agi: -10, con: 0 },
-    club: { agi: 0, con: 0 },
-    axe: { agi: -20, con: -20 },
-    spear: { agi: -20, con: 0 },
-    claw: { agi: 0, con: 0 },
-    bow: { agi: 0, con: 0 },
+): { spd: number; def: number } => {
+  // 4스탯 시스템에 맞게 spd, def로 변경
+  const penalties: Record<WeaponType, { spd: number; def: number }> = {
+    sword: { spd: -10, def: 0 },
+    club: { spd: 0, def: 0 },
+    axe: { spd: -20, def: -20 },
+    spear: { spd: -20, def: 0 },
+    claw: { spd: 0, def: 0 },
+    bow: { spd: 0, def: 0 },
   };
   return penalties[weaponType];
 };
 
-/**
- * Element advantage multiplier
- * Cycle: Earth → Wind → Fire → Water → Earth
- */
+// =====================================================
+// 속성 상성
+// 상성: 지 → 풍 → 화 → 수 → 지
+// =====================================================
 export const getElementMultiplier = (
   attackElement: ElementType,
   defenseElement: ElementType
@@ -151,9 +142,9 @@ export const getElementMultiplier = (
   return 1.0;
 };
 
-/**
- * Loyalty effects
- */
+// =====================================================
+// 충성도 효과
+// =====================================================
 export const getLoyaltyEffects = (loyalty: number) => {
   if (loyalty >= 100) {
     return {
@@ -195,9 +186,9 @@ export const getLoyaltyEffects = (loyalty: number) => {
   };
 };
 
-/**
- * Level difference loyalty penalty
- */
+// =====================================================
+// 레벨 차이 충성도 페널티
+// =====================================================
 export const calculateLevelDiffPenalty = (
   charLevel: number,
   petLevel: number
@@ -210,10 +201,10 @@ export const calculateLevelDiffPenalty = (
   return -50;
 };
 
-/**
- * Party experience bonus
- * 1 player: 100%, 2: 103%, 3: 106%, 4: 109%, 5: 120%
- */
+// =====================================================
+// 파티 경험치 보너스
+// 1명: 100%, 2명: 103%, 3명: 106%, 4명: 109%, 5명: 120%
+// =====================================================
 export const getPartyExpBonus = (memberCount: number): number => {
   const bonuses: Record<number, number> = {
     1: 1.0,
@@ -225,9 +216,9 @@ export const getPartyExpBonus = (memberCount: number): number => {
   return bonuses[memberCount] || 1.0;
 };
 
-/**
- * Level difference exp penalty
- */
+// =====================================================
+// 레벨 차이 경험치 페널티
+// =====================================================
 export const getLevelPenalty = (levelDiff: number): number => {
   if (levelDiff <= 10) return 1.0;
   if (levelDiff <= 20) return 1.0 - (levelDiff - 10) * 0.005;
@@ -235,9 +226,9 @@ export const getLevelPenalty = (levelDiff: number): number => {
   return 0.5;
 };
 
-/**
- * Durability loss calculation
- */
+// =====================================================
+// 내구도 손실 계산
+// =====================================================
 export const calculateDurabilityLoss = (
   isCriticalHit: boolean
 ): number => {
@@ -245,49 +236,173 @@ export const calculateDurabilityLoss = (
   return isCriticalHit ? baseLoss * 2 : baseLoss;
 };
 
-/**
- * Gang-up (multi-attack) critical bonus
- */
+// =====================================================
+// 다굴 크리티컬 보너스
+// =====================================================
 export const getGangUpCritBonus = (participantCount: number): number => {
   return Math.min((participantCount - 1) * 10, 50);
 };
 
-/**
- * Capture success rate calculation
- */
+// =====================================================
+// 포획률 계산
+// =====================================================
 export const calculateCatchRate = (
   targetHpRatio: number,
+  baseCaptureRate: number = 50,
   itemBonus: number = 0,
   luckBonus: number = 0
 ): number => {
-  let rate = (1 - targetHpRatio) * 50 + 10; // 10~60% base
+  // HP가 낮을수록 포획률 증가
+  let rate = baseCaptureRate * (1 - targetHpRatio * 0.5);
   rate += itemBonus;
   rate += luckBonus;
   return Math.min(rate, 95); // Max 95%
 };
 
-/**
- * Generate random pet stats on capture
- */
-export const generateRandomPetStats = (): BaseStats => {
+// =====================================================
+// 랜덤 펫 스탯 생성 (4스탯)
+// 템플릿의 범위 내에서 랜덤 생성
+// =====================================================
+export interface StatRange {
+  min: number;
+  max: number;
+}
+
+export interface PetStatsRange {
+  hp: StatRange;
+  atk: StatRange;
+  def: StatRange;
+  spd: StatRange;
+}
+
+export interface PetBonusPool {
+  hp: number;
+  atk: number;
+  def: number;
+  spd: number;
+}
+
+export const generateRandomPetStats = (
+  baseStatsRange: PetStatsRange,
+  bonusPool: PetBonusPool
+): BaseStats => {
+  // 기본 스탯 랜덤 생성
+  const baseHp = Math.floor(
+    Math.random() * (baseStatsRange.hp.max - baseStatsRange.hp.min + 1) +
+      baseStatsRange.hp.min
+  );
+  const baseAtk = Math.floor(
+    Math.random() * (baseStatsRange.atk.max - baseStatsRange.atk.min + 1) +
+      baseStatsRange.atk.min
+  );
+  const baseDef = Math.floor(
+    Math.random() * (baseStatsRange.def.max - baseStatsRange.def.min + 1) +
+      baseStatsRange.def.min
+  );
+  const baseSpd = Math.floor(
+    Math.random() * (baseStatsRange.spd.max - baseStatsRange.spd.min + 1) +
+      baseStatsRange.spd.min
+  );
+
+  // 보너스 풀에서 랜덤 분배
+  const bonusHp = Math.floor(Math.random() * (bonusPool.hp + 1));
+  const bonusAtk = Math.floor(Math.random() * (bonusPool.atk + 1));
+  const bonusDef = Math.floor(Math.random() * (bonusPool.def + 1));
+  const bonusSpd = Math.floor(Math.random() * (bonusPool.spd + 1));
+
   return {
-    str: 5 + Math.floor(Math.random() * 6),
-    agi: 5 + Math.floor(Math.random() * 6),
-    vit: 5 + Math.floor(Math.random() * 6),
-    con: 5 + Math.floor(Math.random() * 6),
-    int: 5 + Math.floor(Math.random() * 6),
+    hp: baseHp + bonusHp,
+    atk: baseAtk + bonusAtk,
+    def: baseDef + bonusDef,
+    spd: baseSpd + bonusSpd,
   };
 };
 
-/**
- * Generate random pet growth rates (80-120%)
- */
-export const generateRandomGrowthRates = () => {
+// =====================================================
+// 랜덤 성장률 생성 (4스탯)
+// =====================================================
+export interface GrowthRatesRange {
+  hp: StatRange;
+  atk: StatRange;
+  def: StatRange;
+  spd: StatRange;
+}
+
+export const generateRandomGrowthRates = (
+  growthRatesRange: GrowthRatesRange
+): { hp: number; atk: number; def: number; spd: number } => {
   return {
-    str: 80 + Math.floor(Math.random() * 41),
-    agi: 80 + Math.floor(Math.random() * 41),
-    vit: 80 + Math.floor(Math.random() * 41),
-    con: 80 + Math.floor(Math.random() * 41),
-    int: 80 + Math.floor(Math.random() * 41),
+    hp: parseFloat(
+      (
+        Math.random() * (growthRatesRange.hp.max - growthRatesRange.hp.min) +
+        growthRatesRange.hp.min
+      ).toFixed(2)
+    ),
+    atk: parseFloat(
+      (
+        Math.random() * (growthRatesRange.atk.max - growthRatesRange.atk.min) +
+        growthRatesRange.atk.min
+      ).toFixed(2)
+    ),
+    def: parseFloat(
+      (
+        Math.random() * (growthRatesRange.def.max - growthRatesRange.def.min) +
+        growthRatesRange.def.min
+      ).toFixed(2)
+    ),
+    spd: parseFloat(
+      (
+        Math.random() * (growthRatesRange.spd.max - growthRatesRange.spd.min) +
+        growthRatesRange.spd.min
+      ).toFixed(2)
+    ),
   };
+};
+
+// =====================================================
+// 성장 그룹 계산
+// 총합 스탯 기반
+// =====================================================
+export type GrowthGroup = 'S' | 'A' | 'B' | 'C' | 'D';
+
+export const GROWTH_GROUP_CONFIG = {
+  S: { minPercent: 95, maxPercent: 100, multiplier: 1.0 },
+  A: { minPercent: 85, maxPercent: 94, multiplier: 0.9 },
+  B: { minPercent: 70, maxPercent: 84, multiplier: 0.8 },
+  C: { minPercent: 50, maxPercent: 69, multiplier: 0.7 },
+  D: { minPercent: 0, maxPercent: 49, multiplier: 0.6 },
+} as const;
+
+// 최대 총합 스탯 (기준점)
+export const MAX_TOTAL_STATS = 1299;  // HP(999) + ATK(100) + DEF(100) + SPD(100)
+
+export const calculateGrowthGroup = (
+  stats: BaseStats,
+  maxPossibleStats: number = MAX_TOTAL_STATS
+): GrowthGroup => {
+  const totalStats = stats.hp + stats.atk + stats.def + stats.spd;
+  const percent = (totalStats / maxPossibleStats) * 100;
+
+  if (percent >= 95) return 'S';
+  if (percent >= 85) return 'A';
+  if (percent >= 70) return 'B';
+  if (percent >= 50) return 'C';
+  return 'D';
+};
+
+export const getGrowthMultiplier = (group: GrowthGroup): number => {
+  return GROWTH_GROUP_CONFIG[group].multiplier;
+};
+
+// =====================================================
+// 레벨업 스탯 증가 계산
+// 성장률 × 성장 그룹 배수 × (0.8~1.2 랜덤)
+// =====================================================
+export const calculateLevelUpStatIncrease = (
+  growthRate: number,
+  growthGroup: GrowthGroup
+): number => {
+  const multiplier = getGrowthMultiplier(growthGroup);
+  const variance = 0.8 + Math.random() * 0.4;  // 0.8 ~ 1.2
+  return Math.max(1, Math.floor(growthRate * multiplier * variance));
 };

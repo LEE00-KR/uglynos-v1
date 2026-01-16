@@ -47,8 +47,9 @@ CREATE TABLE characters (
     stat_spd INTEGER DEFAULT 10,
     stat_points INTEGER DEFAULT 20,
 
-    -- 현재 상태
+    -- 현재 상태 (전투 후 유지, 자동 회복 없음)
     current_hp INTEGER,
+    current_energy INTEGER DEFAULT 100,  -- 기력 (고정 100, 레벨업 시 증가 없음)
 
     -- 탑승 페트
     riding_pet_id UUID,

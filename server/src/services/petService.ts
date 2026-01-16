@@ -6,11 +6,14 @@ export const getPetsByCharacterId = async (characterId: string) => {
     .from('pets')
     .select(`
       *,
-      pet_templates (
+      admin_pets (
+        id,
         name,
         element_primary,
         element_secondary,
-        element_primary_ratio
+        element_primary_ratio,
+        capture_rate,
+        total_stats
       )
     `)
     .eq('character_id', characterId)
@@ -25,16 +28,22 @@ export const getPetById = async (petId: string, characterId: string) => {
     .from('pets')
     .select(`
       *,
-      pet_templates (
+      admin_pets (
+        id,
         name,
         element_primary,
         element_secondary,
         element_primary_ratio,
-        base_str,
-        base_agi,
-        base_vit,
-        base_con,
-        base_int
+        base_hp_min,
+        base_hp_max,
+        base_atk_min,
+        base_atk_max,
+        base_def_min,
+        base_def_max,
+        base_spd_min,
+        base_spd_max,
+        capture_rate,
+        total_stats
       )
     `)
     .eq('id', petId)
@@ -110,9 +119,11 @@ export const removeFromParty = async (petId: string, characterId: string) => {
 export const setRiding = async (petId: string, characterId: string) => {
   const pet = await getPetById(petId, characterId);
 
-  if (!pet.pet_templates?.can_ride) {
-    throw new ValidationError('탑승할 수 없는 펫입니다');
-  }
+  // admin_pets에는 can_ride 필드가 없으므로 임시로 항상 허용
+  // TODO: admin_pets에 can_ride 필드 추가 시 활성화
+  // if (!pet.admin_pets?.can_ride) {
+  //   throw new ValidationError('탑승할 수 없는 펫입니다');
+  // }
 
   // Unset current riding pet
   await supabase
@@ -173,13 +184,14 @@ export const getStoragePets = async (characterId: string) => {
     .from('pets')
     .select(`
       *,
-      pet_templates (
+      admin_pets (
+        id,
         name,
         element_primary,
         element_secondary,
         element_primary_ratio,
-        can_ride,
-        rarity
+        capture_rate,
+        total_stats
       )
     `)
     .eq('character_id', characterId)
@@ -195,13 +207,14 @@ export const getActivePets = async (characterId: string) => {
     .from('pets')
     .select(`
       *,
-      pet_templates (
+      admin_pets (
+        id,
         name,
         element_primary,
         element_secondary,
         element_primary_ratio,
-        can_ride,
-        rarity
+        capture_rate,
+        total_stats
       )
     `)
     .eq('character_id', characterId)
@@ -360,13 +373,14 @@ export const getStandbyPets = async (characterId: string) => {
     .from('pets')
     .select(`
       *,
-      pet_templates (
+      admin_pets (
+        id,
         name,
         element_primary,
         element_secondary,
         element_primary_ratio,
-        can_ride,
-        rarity
+        capture_rate,
+        total_stats
       )
     `)
     .eq('character_id', characterId)
@@ -383,13 +397,14 @@ export const getRepresentativePet = async (characterId: string) => {
     .from('pets')
     .select(`
       *,
-      pet_templates (
+      admin_pets (
+        id,
         name,
         element_primary,
         element_secondary,
         element_primary_ratio,
-        can_ride,
-        rarity
+        capture_rate,
+        total_stats
       )
     `)
     .eq('character_id', characterId)

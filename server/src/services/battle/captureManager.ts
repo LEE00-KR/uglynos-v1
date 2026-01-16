@@ -1,4 +1,9 @@
 import type { BattleUnit } from '../../types/game.js';
+import {
+  generateRandomGrowthRates,
+  calculateGrowthGroup,
+  type GrowthGroup,
+} from '../../utils/formulas.js';
 
 interface CaptureItem {
   catchBonus: number;
@@ -12,54 +17,55 @@ interface CaptureResult {
   reason?: string;
 }
 
+// 4스탯 기반 포획 펫 데이터
 interface CapturedPetData {
-  templateId: number;
+  templateId: string;  // string으로 변경 (admin_pets.id)
   characterId: string;
   nickname: string | null;
   level: number;
   exp: number;
-  stat_str: number;
-  stat_agi: number;
-  stat_vit: number;
-  stat_con: number;
-  stat_int: number;
-  growth_str: number;
-  growth_agi: number;
-  growth_vit: number;
-  growth_con: number;
-  growth_int: number;
+  // 4스탯
+  stat_hp: number;
+  stat_atk: number;
+  stat_def: number;
+  stat_spd: number;
+  // 성장률 (4스탯)
+  growth_hp: number;
+  growth_atk: number;
+  growth_def: number;
+  growth_spd: number;
+  // 성장 그룹
+  growthGroup: GrowthGroup;
   loyalty: number;
   isRareColor: boolean;
-  isStarter: boolean;
 }
 
 export class CaptureManager {
   /**
    * Attempt to capture a pet
    * - Only level 1 pets can be captured
-   * - Base rate + modifiers
+   * - Base rate from template + HP modifier
    */
   tryCatch(
     target: BattleUnit,
     _catcher: BattleUnit,
     captureItem?: CaptureItem
   ): CaptureResult {
-    // Only level 1 capturable pets
     if (!target.isCapturable || target.level !== 1) {
       return { success: false, reason: 'not_capturable' };
     }
 
-    // Base capture rate (HP ratio based)
+    // Base capture rate from template (captureRate field) or default
+    const baseCaptureRate = target.captureRate || 50;
+
+    // HP ratio modifier (HP 낮을수록 포획률 증가)
     const hpRatio = target.hp / target.maxHp;
-    let catchRate = (1 - hpRatio) * 50 + 10; // Lower HP = higher rate, 10~60%
+    let catchRate = baseCaptureRate * (1 - hpRatio * 0.5);
 
     // Item bonus
     if (captureItem) {
       catchRate += captureItem.catchBonus;
     }
-
-    // Hidden luck bonus (from equipment, titles, etc.)
-    // TODO: Implement luck bonus from equipment
 
     // Max 95%
     catchRate = Math.min(catchRate, 95);
@@ -76,53 +82,43 @@ export class CaptureManager {
   }
 
   /**
-   * Create captured pet data
+   * Create captured pet data from BattleUnit (4스탯)
    */
   createCapturedPet(
     enemyUnit: BattleUnit,
     characterId: string
   ): CapturedPetData {
-    const stats = this.generateRandomStats();
-    const growthRates = this.generateGrowthRates();
+    // Use enemy unit's stats directly
+    const baseStats = enemyUnit.stats;
+
+    // Generate random growth rates (4스탯)
+    const growthRates = generateRandomGrowthRates({
+      hp: { min: 5.0, max: 10.0 },
+      atk: { min: 1.0, max: 2.0 },
+      def: { min: 1.0, max: 2.0 },
+      spd: { min: 1.0, max: 2.0 },
+    });
+
+    // Calculate growth group based on stats
+    const growthGroup = calculateGrowthGroup(baseStats);
 
     return {
-      templateId: enemyUnit.templateId!,
+      templateId: enemyUnit.templateId || '',
       characterId,
       nickname: null,
       level: 1,
       exp: 0,
-      ...stats,
-      ...growthRates,
-      loyalty: 50, // Initial loyalty
+      stat_hp: baseStats.hp,
+      stat_atk: baseStats.atk,
+      stat_def: baseStats.def,
+      stat_spd: baseStats.spd,
+      growth_hp: growthRates.hp,
+      growth_atk: growthRates.atk,
+      growth_def: growthRates.def,
+      growth_spd: growthRates.spd,
+      growthGroup,
+      loyalty: 50,
       isRareColor: enemyUnit.isRareColor || false,
-      isStarter: false,
-    };
-  }
-
-  /**
-   * Generate random pet stats
-   * Each stat: 5 + (0~5) random
-   */
-  private generateRandomStats() {
-    return {
-      stat_str: 5 + Math.floor(Math.random() * 6),
-      stat_agi: 5 + Math.floor(Math.random() * 6),
-      stat_vit: 5 + Math.floor(Math.random() * 6),
-      stat_con: 5 + Math.floor(Math.random() * 6),
-      stat_int: 5 + Math.floor(Math.random() * 6),
-    };
-  }
-
-  /**
-   * Generate random growth rates (80~120%)
-   */
-  private generateGrowthRates() {
-    return {
-      growth_str: 80 + Math.floor(Math.random() * 41),
-      growth_agi: 80 + Math.floor(Math.random() * 41),
-      growth_vit: 80 + Math.floor(Math.random() * 41),
-      growth_con: 80 + Math.floor(Math.random() * 41),
-      growth_int: 80 + Math.floor(Math.random() * 41),
     };
   }
 
@@ -153,8 +149,9 @@ export class CaptureManager {
       return 0;
     }
 
+    const baseCaptureRate = target.captureRate || 50;
     const hpRatio = target.hp / target.maxHp;
-    let rate = (1 - hpRatio) * 50 + 10;
+    let rate = baseCaptureRate * (1 - hpRatio * 0.5);
     rate += itemBonus;
     return Math.min(Math.floor(rate), 95);
   }
