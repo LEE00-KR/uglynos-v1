@@ -1,4 +1,5 @@
 import rateLimit from 'express-rate-limit';
+import { Request } from 'express';
 
 export const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -14,9 +15,16 @@ export const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Email-based rate limiter for auth endpoints
+// Uses email instead of IP to avoid issues with mobile networks (CGNAT)
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 30, // 30 attempts per 15 minutes
+  max: 10, // 10 attempts per email per 15 minutes
+  keyGenerator: (req: Request) => {
+    // Use email as the key, fallback to IP if email not provided
+    const email = req.body?.email?.toLowerCase();
+    return email || req.ip || 'unknown';
+  },
   message: {
     success: false,
     error: {
