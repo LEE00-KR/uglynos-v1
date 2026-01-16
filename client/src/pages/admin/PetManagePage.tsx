@@ -443,8 +443,6 @@ export default function PetManagePage() {
                         <div className="flex-1 flex items-center gap-2">
                           <input
                             type="number"
-                            min="1"
-                            max={stat === 'hp' ? 999 : 100}
                             value={formData.baseStatsRange[stat].min || ''}
                             onChange={(e) => handleBaseStatRangeChange(stat, 'min', e.target.value)}
                             disabled={!isEditing}
@@ -456,8 +454,6 @@ export default function PetManagePage() {
                           <span className="text-gray-400">~</span>
                           <input
                             type="number"
-                            min="1"
-                            max={stat === 'hp' ? 999 : 100}
                             value={formData.baseStatsRange[stat].max || ''}
                             onChange={(e) => handleBaseStatRangeChange(stat, 'max', e.target.value)}
                             disabled={!isEditing}
@@ -481,8 +477,6 @@ export default function PetManagePage() {
                         <label className="block text-xs text-gray-400 mb-1">{STAT_LABELS[stat]}</label>
                         <input
                           type="number"
-                          min="0"
-                          max={stat === 'hp' ? 50 : 10}
                           value={formData.bonusPool[stat]}
                           onChange={(e) => handleBonusPoolChange(stat, e.target.value)}
                           disabled={!isEditing}
@@ -510,8 +504,6 @@ export default function PetManagePage() {
                         <div className="flex-1 flex items-center gap-2">
                           <input
                             type="number"
-                            min="1"
-                            max="3"
                             step="0.05"
                             value={formData.growthRatesRange[stat].min || ''}
                             onChange={(e) => handleGrowthRateRangeChange(stat, 'min', e.target.value)}
@@ -524,8 +516,6 @@ export default function PetManagePage() {
                           <span className="text-gray-400">~</span>
                           <input
                             type="number"
-                            min="1"
-                            max="3"
                             step="0.05"
                             value={formData.growthRatesRange[stat].max || ''}
                             onChange={(e) => handleGrowthRateRangeChange(stat, 'max', e.target.value)}
