@@ -283,18 +283,19 @@ export const useBattleStore = create<BattleState & BattleActions>((set, get) => 
     const state = get();
     const updatedUnits = new Map(state.units);
 
-    // Apply unit updates
+    // Apply unit updates (서버에서 객체로 전송됨)
     if (result.unitUpdates) {
-      result.unitUpdates.forEach((updates, unitId) => {
+      Object.entries(result.unitUpdates).forEach(([unitId, updates]) => {
         const unit = updatedUnits.get(unitId);
         if (unit) {
-          updatedUnits.set(unitId, { ...unit, ...updates });
+          updatedUnits.set(unitId, { ...unit, ...(updates as object) });
         }
       });
     }
 
     // Mark defeated units
-    result.defeatedUnits.forEach(unitId => {
+    const defeatedUnits = result.defeatedUnits || [];
+    defeatedUnits.forEach((unitId: string) => {
       const unit = updatedUnits.get(unitId);
       if (unit) {
         updatedUnits.set(unitId, { ...unit, hp: 0, isAlive: false });
@@ -303,7 +304,8 @@ export const useBattleStore = create<BattleState & BattleActions>((set, get) => 
 
     // Add action messages
     const messages: string[] = [];
-    result.actions.forEach(action => {
+    const actions = result.actions || [];
+    actions.forEach((action: any) => {
       const actor = updatedUnits.get(action.actorId);
       const target = action.targetId ? updatedUnits.get(action.targetId) : null;
 
