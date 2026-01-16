@@ -57,8 +57,9 @@ describe('DamageCalculator', () => {
       const attacker = createMockUnit();
       const defender = createMockUnit({ isDefending: true });
 
-      const normalResult = calculator.calculate(attacker, createMockUnit());
-      const defendingResult = calculator.calculate(attacker, defender);
+      // critChance를 0으로 설정해서 크리티컬 방지
+      const normalResult = calculator.calculate(attacker, createMockUnit(), { critChance: 0 });
+      const defendingResult = calculator.calculate(attacker, defender, { critChance: 0 });
 
       expect(defendingResult.damage).toBeLessThan(normalResult.damage);
       expect(defendingResult.wasDefending).toBe(true);
