@@ -141,15 +141,122 @@ export const unsetRiding = async (petId: string, characterId: string) => {
 };
 
 export const releasePet = async (petId: string, characterId: string) => {
-  const pet = await getPetById(petId, characterId);
+  await getPetById(petId, characterId);
 
-  if (pet.is_starter) {
-    throw new ValidationError('스타터 펫은 방생할 수 없습니다');
+  // Check if there's at least one other pet
+  const { count } = await supabase
+    .from('pets')
+    .select('*', { count: 'exact', head: true })
+    .eq('character_id', characterId);
+
+  if (count && count <= 1) {
+    throw new ValidationError('최소 1마리의 펫은 보유해야 합니다');
   }
 
   const { error } = await supabase
     .from('pets')
     .delete()
+    .eq('id', petId);
+
+  if (error) throw error;
+};
+
+// =============================================
+// PET STORAGE (창고) FUNCTIONS
+// =============================================
+
+const MAX_ACTIVE_PETS = 6;
+const MAX_STORAGE_PETS = 20;
+
+export const getStoragePets = async (characterId: string) => {
+  const { data, error } = await supabase
+    .from('pets')
+    .select(`
+      *,
+      pet_templates (
+        name,
+        element_primary,
+        element_secondary,
+        element_primary_ratio,
+        can_ride,
+        rarity
+      )
+    `)
+    .eq('character_id', characterId)
+    .eq('in_storage', true)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+};
+
+export const getActivePets = async (characterId: string) => {
+  const { data, error } = await supabase
+    .from('pets')
+    .select(`
+      *,
+      pet_templates (
+        name,
+        element_primary,
+        element_secondary,
+        element_primary_ratio,
+        can_ride,
+        rarity
+      )
+    `)
+    .eq('character_id', characterId)
+    .or('in_storage.is.null,in_storage.eq.false')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+};
+
+export const moveToStorage = async (petId: string, characterId: string) => {
+  const pet = await getPetById(petId, characterId);
+
+  // Check storage capacity
+  const storagePets = await getStoragePets(characterId);
+  if (storagePets.length >= MAX_STORAGE_PETS) {
+    throw new ValidationError(`창고는 최대 ${MAX_STORAGE_PETS}마리까지 보관 가능합니다`);
+  }
+
+  // Remove from party if in party
+  if (pet.party_slot) {
+    await supabase
+      .from('pets')
+      .update({ party_slot: null })
+      .eq('id', petId);
+  }
+
+  // Remove riding if riding
+  if (pet.is_riding) {
+    await supabase
+      .from('pets')
+      .update({ is_riding: false })
+      .eq('id', petId);
+  }
+
+  const { error } = await supabase
+    .from('pets')
+    .update({ in_storage: true })
+    .eq('id', petId);
+
+  if (error) throw error;
+};
+
+export const moveFromStorage = async (petId: string, characterId: string) => {
+  await getPetById(petId, characterId);
+
+  // Check active capacity
+  const activePets = await getActivePets(characterId);
+  if (activePets.length >= MAX_ACTIVE_PETS) {
+    throw new ValidationError(`활성 펫은 최대 ${MAX_ACTIVE_PETS}마리까지 보유 가능합니다`);
+  }
+
+  const { error } = await supabase
+    .from('pets')
+    .update({ in_storage: false })
     .eq('id', petId);
 
   if (error) throw error;
