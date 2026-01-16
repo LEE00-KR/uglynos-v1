@@ -75,3 +75,40 @@ export const releasePet = async (req: AuthRequest, res: Response, next: NextFunc
     next(error);
   }
 };
+
+// Storage (창고) endpoints
+export const getActivePets = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const pets = await petService.getActivePets(req.characterId!);
+    res.json({ success: true, data: pets });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getStoragePets = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const pets = await petService.getStoragePets(req.characterId!);
+    res.json({ success: true, data: pets });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const moveToStorage = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    await petService.moveToStorage(req.params.id, req.characterId!);
+    res.json({ success: true, message: '펫을 창고에 보관했습니다' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const moveFromStorage = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    await petService.moveFromStorage(req.params.id, req.characterId!);
+    res.json({ success: true, message: '펫을 창고에서 꺼냈습니다' });
+  } catch (error) {
+    next(error);
+  }
+};

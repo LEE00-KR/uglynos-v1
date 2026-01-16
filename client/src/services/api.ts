@@ -85,6 +85,8 @@ export const characterApi = {
 // Pet API
 export const petApi = {
   getAll: () => api.get('/pets'),
+  getActive: () => api.get('/pets/active'),
+  getStorage: () => api.get('/pets/storage'),
   get: (id: string) => api.get(`/pets/${id}`),
   updateNickname: (id: string, nickname: string) =>
     api.patch(`/pets/${id}/nickname`, { nickname }),
@@ -93,6 +95,8 @@ export const petApi = {
   removeFromParty: (id: string) => api.delete(`/pets/${id}/party`),
   setRiding: (id: string) => api.post(`/pets/${id}/ride`),
   unsetRiding: (id: string) => api.delete(`/pets/${id}/ride`),
+  moveToStorage: (id: string) => api.post(`/pets/${id}/storage`),
+  moveFromStorage: (id: string) => api.delete(`/pets/${id}/storage`),
   release: (id: string) => api.delete(`/pets/${id}`),
 };
 
