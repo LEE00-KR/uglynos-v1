@@ -5,6 +5,15 @@ import RegisterPage from './pages/RegisterPage';
 import CharacterSelectPage from './pages/CharacterSelectPage';
 import GamePage from './pages/GamePage';
 
+// Admin Pages
+import AdminLayout from './pages/admin/AdminLayout';
+import DashboardPage from './pages/admin/DashboardPage';
+import PetManagePage from './pages/admin/PetManagePage';
+import SkillManagePage from './pages/admin/SkillManagePage';
+import StageGroupManagePage from './pages/admin/StageGroupManagePage';
+import StageManagePage from './pages/admin/StageManagePage';
+import ShopManagePage from './pages/admin/ShopManagePage';
+
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
@@ -37,6 +46,22 @@ function App() {
             </PrivateRoute>
           }
         />
+        {/* Admin Routes */}
+        <Route
+          path="/admin"
+          element={
+            <PrivateRoute>
+              <AdminLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route index element={<DashboardPage />} />
+          <Route path="pets" element={<PetManagePage />} />
+          <Route path="skills" element={<SkillManagePage />} />
+          <Route path="stage-groups" element={<StageGroupManagePage />} />
+          <Route path="stages" element={<StageManagePage />} />
+          <Route path="shop" element={<ShopManagePage />} />
+        </Route>
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
