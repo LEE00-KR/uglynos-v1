@@ -38,18 +38,25 @@ export const getPets = async (_req: Request, res: Response, next: NextFunction) 
         secondary: row.element_secondary || null,
         primaryRatio: row.element_primary_ratio,
       },
-      baseStats: {
-        hp: row.base_hp,
-        atk: row.base_atk,
-        def: row.base_def,
-        spd: row.base_spd,
+      baseStatsRange: {
+        hp: { min: row.base_hp_min, max: row.base_hp_max },
+        atk: { min: row.base_atk_min, max: row.base_atk_max },
+        def: { min: row.base_def_min, max: row.base_def_max },
+        spd: { min: row.base_spd_min, max: row.base_spd_max },
       },
-      growthRates: {
-        hp: parseFloat(row.growth_hp),
-        atk: parseFloat(row.growth_atk),
-        def: parseFloat(row.growth_def),
-        spd: parseFloat(row.growth_spd),
+      bonusPool: {
+        hp: row.bonus_hp,
+        atk: row.bonus_atk,
+        def: row.bonus_def,
+        spd: row.bonus_spd,
       },
+      growthRatesRange: {
+        hp: { min: parseFloat(row.growth_hp_min), max: parseFloat(row.growth_hp_max) },
+        atk: { min: parseFloat(row.growth_atk_min), max: parseFloat(row.growth_atk_max) },
+        def: { min: parseFloat(row.growth_def_min), max: parseFloat(row.growth_def_max) },
+        spd: { min: parseFloat(row.growth_spd_min), max: parseFloat(row.growth_spd_max) },
+      },
+      totalStats: row.total_stats,
       sprites: {
         idle: row.sprite_idle || '',
         attack: row.sprite_attack || '',
@@ -109,18 +116,25 @@ export const getPetById = async (req: Request, res: Response, next: NextFunction
         secondary: row.element_secondary || null,
         primaryRatio: row.element_primary_ratio,
       },
-      baseStats: {
-        hp: row.base_hp,
-        atk: row.base_atk,
-        def: row.base_def,
-        spd: row.base_spd,
+      baseStatsRange: {
+        hp: { min: row.base_hp_min, max: row.base_hp_max },
+        atk: { min: row.base_atk_min, max: row.base_atk_max },
+        def: { min: row.base_def_min, max: row.base_def_max },
+        spd: { min: row.base_spd_min, max: row.base_spd_max },
       },
-      growthRates: {
-        hp: parseFloat(row.growth_hp),
-        atk: parseFloat(row.growth_atk),
-        def: parseFloat(row.growth_def),
-        spd: parseFloat(row.growth_spd),
+      bonusPool: {
+        hp: row.bonus_hp,
+        atk: row.bonus_atk,
+        def: row.bonus_def,
+        spd: row.bonus_spd,
       },
+      growthRatesRange: {
+        hp: { min: parseFloat(row.growth_hp_min), max: parseFloat(row.growth_hp_max) },
+        atk: { min: parseFloat(row.growth_atk_min), max: parseFloat(row.growth_atk_max) },
+        def: { min: parseFloat(row.growth_def_min), max: parseFloat(row.growth_def_max) },
+        spd: { min: parseFloat(row.growth_spd_min), max: parseFloat(row.growth_spd_max) },
+      },
+      totalStats: row.total_stats,
       sprites: {
         idle: row.sprite_idle || '',
         attack: row.sprite_attack || '',
@@ -145,20 +159,44 @@ export const createPet = async (req: Request, res: Response, next: NextFunction)
     const body: CreateAdminPetRequest = req.body;
     const id = body.id || generateId('pet');
 
+    // Calculate total stats from max values
+    const totalStats = body.baseStatsRange.hp.max +
+                       body.baseStatsRange.atk.max +
+                       body.baseStatsRange.def.max +
+                       body.baseStatsRange.spd.max;
+
     const { error } = await supabase.from('admin_pets').insert({
       id,
       name: body.name,
       element_primary: body.element.primary,
       element_secondary: body.element.secondary || null,
       element_primary_ratio: body.element.primaryRatio,
-      base_hp: body.baseStats.hp,
-      base_atk: body.baseStats.atk,
-      base_def: body.baseStats.def,
-      base_spd: body.baseStats.spd,
-      growth_hp: body.growthRates.hp,
-      growth_atk: body.growthRates.atk,
-      growth_def: body.growthRates.def,
-      growth_spd: body.growthRates.spd,
+      // Base stats range
+      base_hp_min: body.baseStatsRange.hp.min,
+      base_hp_max: body.baseStatsRange.hp.max,
+      base_atk_min: body.baseStatsRange.atk.min,
+      base_atk_max: body.baseStatsRange.atk.max,
+      base_def_min: body.baseStatsRange.def.min,
+      base_def_max: body.baseStatsRange.def.max,
+      base_spd_min: body.baseStatsRange.spd.min,
+      base_spd_max: body.baseStatsRange.spd.max,
+      // Bonus pool
+      bonus_hp: body.bonusPool.hp,
+      bonus_atk: body.bonusPool.atk,
+      bonus_def: body.bonusPool.def,
+      bonus_spd: body.bonusPool.spd,
+      // Growth rates range
+      growth_hp_min: body.growthRatesRange.hp.min,
+      growth_hp_max: body.growthRatesRange.hp.max,
+      growth_atk_min: body.growthRatesRange.atk.min,
+      growth_atk_max: body.growthRatesRange.atk.max,
+      growth_def_min: body.growthRatesRange.def.min,
+      growth_def_max: body.growthRatesRange.def.max,
+      growth_spd_min: body.growthRatesRange.spd.min,
+      growth_spd_max: body.growthRatesRange.spd.max,
+      // Total stats
+      total_stats: totalStats,
+      // Sprites
       sprite_idle: body.sprites.idle,
       sprite_attack: body.sprites.attack,
       sprite_hit: body.sprites.hit,
@@ -199,17 +237,36 @@ export const updatePet = async (req: Request, res: Response, next: NextFunction)
       updates.element_secondary = body.element.secondary || null;
       updates.element_primary_ratio = body.element.primaryRatio;
     }
-    if (body.baseStats) {
-      updates.base_hp = body.baseStats.hp;
-      updates.base_atk = body.baseStats.atk;
-      updates.base_def = body.baseStats.def;
-      updates.base_spd = body.baseStats.spd;
+    if (body.baseStatsRange) {
+      updates.base_hp_min = body.baseStatsRange.hp.min;
+      updates.base_hp_max = body.baseStatsRange.hp.max;
+      updates.base_atk_min = body.baseStatsRange.atk.min;
+      updates.base_atk_max = body.baseStatsRange.atk.max;
+      updates.base_def_min = body.baseStatsRange.def.min;
+      updates.base_def_max = body.baseStatsRange.def.max;
+      updates.base_spd_min = body.baseStatsRange.spd.min;
+      updates.base_spd_max = body.baseStatsRange.spd.max;
+      // Recalculate total stats
+      updates.total_stats = body.baseStatsRange.hp.max +
+                            body.baseStatsRange.atk.max +
+                            body.baseStatsRange.def.max +
+                            body.baseStatsRange.spd.max;
     }
-    if (body.growthRates) {
-      updates.growth_hp = body.growthRates.hp;
-      updates.growth_atk = body.growthRates.atk;
-      updates.growth_def = body.growthRates.def;
-      updates.growth_spd = body.growthRates.spd;
+    if (body.bonusPool) {
+      updates.bonus_hp = body.bonusPool.hp;
+      updates.bonus_atk = body.bonusPool.atk;
+      updates.bonus_def = body.bonusPool.def;
+      updates.bonus_spd = body.bonusPool.spd;
+    }
+    if (body.growthRatesRange) {
+      updates.growth_hp_min = body.growthRatesRange.hp.min;
+      updates.growth_hp_max = body.growthRatesRange.hp.max;
+      updates.growth_atk_min = body.growthRatesRange.atk.min;
+      updates.growth_atk_max = body.growthRatesRange.atk.max;
+      updates.growth_def_min = body.growthRatesRange.def.min;
+      updates.growth_def_max = body.growthRatesRange.def.max;
+      updates.growth_spd_min = body.growthRatesRange.spd.min;
+      updates.growth_spd_max = body.growthRatesRange.spd.max;
     }
     if (body.sprites) {
       updates.sprite_idle = body.sprites.idle;

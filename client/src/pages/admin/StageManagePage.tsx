@@ -160,11 +160,22 @@ export default function StageManagePage() {
     const pet = pets.find((p) => p.id === petId);
     if (!pet) return defaultMonsterStats;
 
+    // Use average of min/max for base stats and growth rates
+    const baseHp = (pet.baseStatsRange.hp.min + pet.baseStatsRange.hp.max) / 2;
+    const baseAtk = (pet.baseStatsRange.atk.min + pet.baseStatsRange.atk.max) / 2;
+    const baseDef = (pet.baseStatsRange.def.min + pet.baseStatsRange.def.max) / 2;
+    const baseSpd = (pet.baseStatsRange.spd.min + pet.baseStatsRange.spd.max) / 2;
+
+    const growthHp = (pet.growthRatesRange.hp.min + pet.growthRatesRange.hp.max) / 2;
+    const growthAtk = (pet.growthRatesRange.atk.min + pet.growthRatesRange.atk.max) / 2;
+    const growthDef = (pet.growthRatesRange.def.min + pet.growthRatesRange.def.max) / 2;
+    const growthSpd = (pet.growthRatesRange.spd.min + pet.growthRatesRange.spd.max) / 2;
+
     return {
-      hp: Math.round(pet.baseStats.hp + pet.growthRates.hp * (level - 1)),
-      atk: Math.round(pet.baseStats.atk + pet.growthRates.atk * (level - 1)),
-      def: Math.round(pet.baseStats.def + pet.growthRates.def * (level - 1)),
-      spd: Math.round(pet.baseStats.spd + pet.growthRates.spd * (level - 1)),
+      hp: Math.round(baseHp + growthHp * (level - 1)),
+      atk: Math.round(baseAtk + growthAtk * (level - 1)),
+      def: Math.round(baseDef + growthDef * (level - 1)),
+      spd: Math.round(baseSpd + growthSpd * (level - 1)),
     };
   };
 

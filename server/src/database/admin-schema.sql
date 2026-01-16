@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS admin_skills (
 );
 
 -- =====================================================
--- 2. 페트 관리 (admin_pets)
+-- 2. 페트 관리 (admin_pets) - Species 템플릿 방식
 -- =====================================================
 CREATE TABLE IF NOT EXISTS admin_pets (
   id VARCHAR(50) PRIMARY KEY,
@@ -30,17 +30,36 @@ CREATE TABLE IF NOT EXISTS admin_pets (
   element_secondary VARCHAR(20) CHECK (element_secondary IN ('earth', 'water', 'fire', 'wind', NULL)),
   element_primary_ratio INTEGER DEFAULT 100 CHECK (element_primary_ratio >= 0 AND element_primary_ratio <= 100),
 
-  -- 기본 스텟 (4스텟 시스템: 체력/공격력/방어력/순발력)
-  base_hp INTEGER NOT NULL DEFAULT 100 CHECK (base_hp >= 1 AND base_hp <= 999),
-  base_atk INTEGER NOT NULL DEFAULT 10 CHECK (base_atk >= 1 AND base_atk <= 100),
-  base_def INTEGER NOT NULL DEFAULT 10 CHECK (base_def >= 1 AND base_def <= 100),
-  base_spd INTEGER NOT NULL DEFAULT 10 CHECK (base_spd >= 1 AND base_spd <= 100),
+  -- 기본 스텟 범위 (4스텟 시스템: 체력/공격력/방어력/순발력)
+  -- HP: 1-999, ATK/DEF/SPD: 1-100
+  base_hp_min INTEGER NOT NULL DEFAULT 80 CHECK (base_hp_min >= 1 AND base_hp_min <= 999),
+  base_hp_max INTEGER NOT NULL DEFAULT 120 CHECK (base_hp_max >= 1 AND base_hp_max <= 999),
+  base_atk_min INTEGER NOT NULL DEFAULT 8 CHECK (base_atk_min >= 1 AND base_atk_min <= 100),
+  base_atk_max INTEGER NOT NULL DEFAULT 12 CHECK (base_atk_max >= 1 AND base_atk_max <= 100),
+  base_def_min INTEGER NOT NULL DEFAULT 8 CHECK (base_def_min >= 1 AND base_def_min <= 100),
+  base_def_max INTEGER NOT NULL DEFAULT 12 CHECK (base_def_max >= 1 AND base_def_max <= 100),
+  base_spd_min INTEGER NOT NULL DEFAULT 8 CHECK (base_spd_min >= 1 AND base_spd_min <= 100),
+  base_spd_max INTEGER NOT NULL DEFAULT 12 CHECK (base_spd_max >= 1 AND base_spd_max <= 100),
 
-  -- 성장률 (4스텟 시스템)
-  growth_hp DECIMAL(4,2) NOT NULL DEFAULT 1.50 CHECK (growth_hp >= 1.00 AND growth_hp <= 3.00),
-  growth_atk DECIMAL(4,2) NOT NULL DEFAULT 1.50 CHECK (growth_atk >= 1.00 AND growth_atk <= 3.00),
-  growth_def DECIMAL(4,2) NOT NULL DEFAULT 1.50 CHECK (growth_def >= 1.00 AND growth_def <= 3.00),
-  growth_spd DECIMAL(4,2) NOT NULL DEFAULT 1.50 CHECK (growth_spd >= 1.00 AND growth_spd <= 3.00),
+  -- 보너스 풀 (종족별 보너스 스탯 범위)
+  bonus_hp INTEGER NOT NULL DEFAULT 10 CHECK (bonus_hp >= 0 AND bonus_hp <= 50),
+  bonus_atk INTEGER NOT NULL DEFAULT 2 CHECK (bonus_atk >= 0 AND bonus_atk <= 10),
+  bonus_def INTEGER NOT NULL DEFAULT 2 CHECK (bonus_def >= 0 AND bonus_def <= 10),
+  bonus_spd INTEGER NOT NULL DEFAULT 2 CHECK (bonus_spd >= 0 AND bonus_spd <= 10),
+
+  -- 성장률 범위 (4스텟 시스템)
+  growth_hp_min DECIMAL(4,2) NOT NULL DEFAULT 1.30 CHECK (growth_hp_min >= 1.00 AND growth_hp_min <= 3.00),
+  growth_hp_max DECIMAL(4,2) NOT NULL DEFAULT 1.70 CHECK (growth_hp_max >= 1.00 AND growth_hp_max <= 3.00),
+  growth_atk_min DECIMAL(4,2) NOT NULL DEFAULT 1.30 CHECK (growth_atk_min >= 1.00 AND growth_atk_min <= 3.00),
+  growth_atk_max DECIMAL(4,2) NOT NULL DEFAULT 1.70 CHECK (growth_atk_max >= 1.00 AND growth_atk_max <= 3.00),
+  growth_def_min DECIMAL(4,2) NOT NULL DEFAULT 1.30 CHECK (growth_def_min >= 1.00 AND growth_def_min <= 3.00),
+  growth_def_max DECIMAL(4,2) NOT NULL DEFAULT 1.70 CHECK (growth_def_max >= 1.00 AND growth_def_max <= 3.00),
+  growth_spd_min DECIMAL(4,2) NOT NULL DEFAULT 1.30 CHECK (growth_spd_min >= 1.00 AND growth_spd_min <= 3.00),
+  growth_spd_max DECIMAL(4,2) NOT NULL DEFAULT 1.70 CHECK (growth_spd_max >= 1.00 AND growth_spd_max <= 3.00),
+
+  -- 총합 스탯 (자동 계산용, 성장 그룹 결정에 사용)
+  -- total_stats = base_hp_max + base_atk_max + base_def_max + base_spd_max
+  total_stats INTEGER NOT NULL DEFAULT 156,
 
   -- 스프라이트 (PRD 방식 - 6종, base64 이미지 또는 URL)
   sprite_idle TEXT,
