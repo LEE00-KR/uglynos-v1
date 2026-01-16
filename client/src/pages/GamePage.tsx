@@ -1,18 +1,25 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Phaser from 'phaser';
 import { useGameStore } from '../stores/gameStore';
+import { useAuthStore } from '../stores/authStore';
 import { useBattleStore } from '../stores/battleStore';
 import { connectSocket, disconnectSocket } from '../services/socket';
+import { characterApi } from '../services/api';
 import { MainScene } from '../game/scenes/MainScene';
 import { BattleScene } from '../game/scenes/BattleScene';
 import GameUI from '../components/GameUI';
 import BattleOverlay from '../components/battle/BattleOverlay';
 
 export default function GamePage() {
+  const navigate = useNavigate();
   const gameRef = useRef<Phaser.Game | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const character = useGameStore((state) => state.character);
+  const setCharacter = useGameStore((state) => state.setCharacter);
+  const characterId = useAuthStore((state) => state.characterId);
   const [isInBattle, setIsInBattle] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const battlePhase = useBattleStore((state) => state.phase);
 
   // Handle battle exit
@@ -25,6 +32,28 @@ export default function GamePage() {
       }
     }
   }, []);
+
+  // Load character data on page refresh
+  useEffect(() => {
+    const loadCharacter = async () => {
+      if (!character && characterId) {
+        setIsLoading(true);
+        try {
+          const response = await characterApi.get(characterId);
+          setCharacter(response.data.data);
+        } catch (error) {
+          console.error('Failed to load character:', error);
+          navigate('/characters');
+        } finally {
+          setIsLoading(false);
+        }
+      } else if (!character && !characterId) {
+        navigate('/characters');
+      }
+    };
+
+    loadCharacter();
+  }, [character, characterId, setCharacter, navigate]);
 
   useEffect(() => {
     // Connect socket
@@ -98,10 +127,10 @@ export default function GamePage() {
     }
   }, [battlePhase]);
 
-  if (!character) {
+  if (!character || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-400">캐릭터를 선택해주세요</p>
+        <p className="text-gray-400">{isLoading ? '캐릭터 정보를 불러오는 중...' : '캐릭터를 선택해주세요'}</p>
       </div>
     );
   }
