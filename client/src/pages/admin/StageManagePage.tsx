@@ -21,11 +21,10 @@ const defaultStage: Omit<AdminStage, 'createdAt' | 'updatedAt'> = {
 };
 
 const defaultMonsterStats: MonsterStats = {
-  str: 10,
-  agi: 10,
-  vit: 10,
-  con: 10,
-  int: 10,
+  hp: 100,
+  atk: 10,
+  def: 10,
+  spd: 10,
 };
 
 const MONSTER_SLOTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -161,12 +160,22 @@ export default function StageManagePage() {
     const pet = pets.find((p) => p.id === petId);
     if (!pet) return defaultMonsterStats;
 
+    // Use average of min/max for base stats and growth rates
+    const baseHp = (pet.baseStatsRange.hp.min + pet.baseStatsRange.hp.max) / 2;
+    const baseAtk = (pet.baseStatsRange.atk.min + pet.baseStatsRange.atk.max) / 2;
+    const baseDef = (pet.baseStatsRange.def.min + pet.baseStatsRange.def.max) / 2;
+    const baseSpd = (pet.baseStatsRange.spd.min + pet.baseStatsRange.spd.max) / 2;
+
+    const growthHp = (pet.growthRatesRange.hp.min + pet.growthRatesRange.hp.max) / 2;
+    const growthAtk = (pet.growthRatesRange.atk.min + pet.growthRatesRange.atk.max) / 2;
+    const growthDef = (pet.growthRatesRange.def.min + pet.growthRatesRange.def.max) / 2;
+    const growthSpd = (pet.growthRatesRange.spd.min + pet.growthRatesRange.spd.max) / 2;
+
     return {
-      str: Math.round(pet.baseStats.str + pet.growthRates.str * (level - 1)),
-      agi: Math.round(pet.baseStats.agi + pet.growthRates.agi * (level - 1)),
-      vit: Math.round(pet.baseStats.vit + pet.growthRates.vit * (level - 1)),
-      con: Math.round(pet.baseStats.con + pet.growthRates.con * (level - 1)),
-      int: Math.round(pet.baseStats.int + pet.growthRates.int * (level - 1)),
+      hp: Math.round(baseHp + growthHp * (level - 1)),
+      atk: Math.round(baseAtk + growthAtk * (level - 1)),
+      def: Math.round(baseDef + growthDef * (level - 1)),
+      spd: Math.round(baseSpd + growthSpd * (level - 1)),
     };
   };
 

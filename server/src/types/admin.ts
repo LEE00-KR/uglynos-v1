@@ -12,23 +12,57 @@ export interface ElementConfig {
 }
 
 // =====================================================
-// Pet Types
+// Pet Types (4스텟: 체력, 공격력, 방어력, 순발력)
 // =====================================================
-export interface AdminPetBaseStats {
-  str: number;  // 1-100
-  agi: number;  // 1-100
-  vit: number;  // 1-100
-  con: number;  // 1-100
-  int: number;  // 1-100
+
+// 스탯 범위 (min ~ max)
+export interface StatRange {
+  min: number;
+  max: number;
 }
 
-export interface AdminPetGrowthRates {
-  str: number;  // 1.00-3.00
-  agi: number;  // 1.00-3.00
-  vit: number;  // 1.00-3.00
-  con: number;  // 1.00-3.00
-  int: number;  // 1.00-3.00
+// 기본 스탯 범위 (Species 템플릿용)
+export interface AdminPetBaseStatsRange {
+  hp: StatRange;   // 체력 범위 (1-999)
+  atk: StatRange;  // 공격력 범위 (1-100)
+  def: StatRange;  // 방어력 범위 (1-100)
+  spd: StatRange;  // 순발력 범위 (1-100)
 }
+
+// 보너스 풀 (Species 템플릿용)
+export interface AdminPetBonusPool {
+  hp: number;   // HP 보너스 풀 (0-50)
+  atk: number;  // ATK 보너스 풀 (0-10)
+  def: number;  // DEF 보너스 풀 (0-10)
+  spd: number;  // SPD 보너스 풀 (0-10)
+}
+
+// 성장률 범위 (Species 템플릿용)
+export interface AdminPetGrowthRatesRange {
+  hp: StatRange;   // 1.00-3.00
+  atk: StatRange;  // 1.00-3.00
+  def: StatRange;  // 1.00-3.00
+  spd: StatRange;  // 1.00-3.00
+}
+
+// 고정 스탯 (레거시 호환용)
+export interface AdminPetBaseStats {
+  hp: number;   // 체력 (1-999)
+  atk: number;  // 공격력 (1-100)
+  def: number;  // 방어력 (1-100)
+  spd: number;  // 순발력 (1-100)
+}
+
+// 고정 성장률 (레거시 호환용)
+export interface AdminPetGrowthRates {
+  hp: number;   // 1.00-3.00
+  atk: number;  // 1.00-3.00
+  def: number;  // 1.00-3.00
+  spd: number;  // 1.00-3.00
+}
+
+// 성장 그룹 타입
+export type GrowthGroup = 'S' | 'A' | 'B' | 'C' | 'D';
 
 export interface AdminPetSprites {
   idle: string;
@@ -43,8 +77,13 @@ export interface AdminPet {
   id: string;
   name: string;
   element: ElementConfig;
-  baseStats: AdminPetBaseStats;
-  growthRates: AdminPetGrowthRates;
+  // Species 템플릿 (범위 기반)
+  baseStatsRange: AdminPetBaseStatsRange;
+  bonusPool: AdminPetBonusPool;
+  growthRatesRange: AdminPetGrowthRatesRange;
+  // 총합 스탯 (자동 계산용)
+  totalStats: number;
+  // 스프라이트
   sprites: AdminPetSprites;
   skills: string[];  // skill IDs
   createdAt?: Date;
@@ -111,11 +150,10 @@ export interface AdminStageGroup {
 // Individual Stage Types (PRD 방식)
 // =====================================================
 export interface MonsterStats {
-  str: number;
-  agi: number;
-  vit: number;
-  con: number;
-  int: number;
+  hp: number;   // 체력
+  atk: number;  // 공격력
+  def: number;  // 방어력
+  spd: number;  // 순발력
 }
 
 export interface StageMonster {
@@ -203,8 +241,9 @@ export interface CreateAdminPetRequest {
   id?: string;
   name: string;
   element: ElementConfig;
-  baseStats: AdminPetBaseStats;
-  growthRates: AdminPetGrowthRates;
+  baseStatsRange: AdminPetBaseStatsRange;
+  bonusPool: AdminPetBonusPool;
+  growthRatesRange: AdminPetGrowthRatesRange;
   sprites: AdminPetSprites;
   skills: string[];
 }

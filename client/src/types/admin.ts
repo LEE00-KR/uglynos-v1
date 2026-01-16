@@ -12,22 +12,64 @@ export interface ElementConfig {
 }
 
 // =====================================================
-// Pet Types
+// Pet Types (4스텟: 체력, 공격력, 방어력, 순발력)
 // =====================================================
-export interface AdminPetBaseStats {
-  str: number;  // 1-100
-  agi: number;  // 1-100
-  vit: number;  // 1-100
-  con: number;  // 1-100
-  int: number;  // 1-100
+
+// 스탯 범위 (min ~ max)
+export interface StatRange {
+  min: number;
+  max: number;
 }
 
+// 기본 스탯 범위 (Species 템플릿용)
+export interface AdminPetBaseStatsRange {
+  hp: StatRange;   // 체력 범위 (1-999)
+  atk: StatRange;  // 공격력 범위 (1-100)
+  def: StatRange;  // 방어력 범위 (1-100)
+  spd: StatRange;  // 순발력 범위 (1-100)
+}
+
+// 보너스 풀 (Species 템플릿용)
+export interface AdminPetBonusPool {
+  hp: number;   // HP 보너스 풀 (0-50)
+  atk: number;  // ATK 보너스 풀 (0-10)
+  def: number;  // DEF 보너스 풀 (0-10)
+  spd: number;  // SPD 보너스 풀 (0-10)
+}
+
+// 성장률 범위 (Species 템플릿용)
+export interface AdminPetGrowthRatesRange {
+  hp: StatRange;   // 1.00-3.00
+  atk: StatRange;  // 1.00-3.00
+  def: StatRange;  // 1.00-3.00
+  spd: StatRange;  // 1.00-3.00
+}
+
+// 고정 스탯 (레거시 호환용)
+export interface AdminPetBaseStats {
+  hp: number;   // 체력 (1-999)
+  atk: number;  // 공격력 (1-100)
+  def: number;  // 방어력 (1-100)
+  spd: number;  // 순발력 (1-100)
+}
+
+// 고정 성장률 (레거시 호환용)
 export interface AdminPetGrowthRates {
-  str: number;  // 1.00-3.00
-  agi: number;  // 1.00-3.00
-  vit: number;  // 1.00-3.00
-  con: number;  // 1.00-3.00
-  int: number;  // 1.00-3.00
+  hp: number;   // 1.00-3.00
+  atk: number;  // 1.00-3.00
+  def: number;  // 1.00-3.00
+  spd: number;  // 1.00-3.00
+}
+
+// 성장 그룹 타입
+export type GrowthGroup = 'S' | 'A' | 'B' | 'C' | 'D';
+
+// 총합 스탯 기반 성장 그룹 결정
+export interface GrowthGroupConfig {
+  group: GrowthGroup;
+  minPercent: number;  // 최소 백분율 (총합 기준)
+  maxPercent: number;  // 최대 백분율 (총합 기준)
+  multiplier: number;  // 성장률 배수
 }
 
 export interface AdminPetSprites {
@@ -43,8 +85,13 @@ export interface AdminPet {
   id: string;
   name: string;
   element: ElementConfig;
-  baseStats: AdminPetBaseStats;
-  growthRates: AdminPetGrowthRates;
+  // Species 템플릿 (범위 기반)
+  baseStatsRange: AdminPetBaseStatsRange;
+  bonusPool: AdminPetBonusPool;
+  growthRatesRange: AdminPetGrowthRatesRange;
+  // 총합 스탯 (자동 계산용)
+  totalStats: number;
+  // 스프라이트
   sprites: AdminPetSprites;
   skills: string[];
   createdAt?: string;
@@ -111,11 +158,10 @@ export interface AdminStageGroup {
 // Individual Stage Types (PRD 방식)
 // =====================================================
 export interface MonsterStats {
-  str: number;
-  agi: number;
-  vit: number;
-  con: number;
-  int: number;
+  hp: number;   // 체력
+  atk: number;  // 공격력
+  def: number;  // 방어력
+  spd: number;  // 순발력
 }
 
 export interface StageMonster {
@@ -245,13 +291,57 @@ export const ELEMENT_COLORS: Record<ElementType, string> = {
   wind: 'bg-green-500',
 };
 
-export const STATS = ['str', 'agi', 'vit', 'con', 'int'] as const;
+export const STATS = ['hp', 'atk', 'def', 'spd'] as const;
 export const STAT_LABELS: Record<string, string> = {
-  str: 'STR (힘)',
-  agi: 'AGI (민첩)',
-  vit: 'VIT (체력)',
-  con: 'CON (정신)',
-  int: 'INT (지능)',
+  hp: 'HP (체력)',
+  atk: 'ATK (공격력)',
+  def: 'DEF (방어력)',
+  spd: 'SPD (순발력)',
+};
+
+// 성장 그룹 설정 (총합 스탯 백분율 기준)
+// 최대 총합 = HP(999) + ATK(100) + DEF(100) + SPD(100) = 1299
+export const MAX_TOTAL_STATS = 1299;
+
+export const GROWTH_GROUPS: GrowthGroupConfig[] = [
+  { group: 'S', minPercent: 95, maxPercent: 100, multiplier: 1.0 },
+  { group: 'A', minPercent: 85, maxPercent: 94, multiplier: 0.9 },
+  { group: 'B', minPercent: 70, maxPercent: 84, multiplier: 0.8 },
+  { group: 'C', minPercent: 50, maxPercent: 69, multiplier: 0.7 },
+  { group: 'D', minPercent: 0, maxPercent: 49, multiplier: 0.6 },
+];
+
+export const GROWTH_GROUP_LABELS: Record<GrowthGroup, string> = {
+  S: 'S등급 (95-100%)',
+  A: 'A등급 (85-94%)',
+  B: 'B등급 (70-84%)',
+  C: 'C등급 (50-69%)',
+  D: 'D등급 (0-49%)',
+};
+
+export const GROWTH_GROUP_COLORS: Record<GrowthGroup, string> = {
+  S: 'bg-yellow-500',
+  A: 'bg-purple-500',
+  B: 'bg-blue-500',
+  C: 'bg-green-500',
+  D: 'bg-gray-500',
+};
+
+// 총합 스탯으로 성장 그룹 계산
+export const calculateGrowthGroup = (totalStats: number): GrowthGroup => {
+  const percent = (totalStats / MAX_TOTAL_STATS) * 100;
+  for (const config of GROWTH_GROUPS) {
+    if (percent >= config.minPercent && percent <= config.maxPercent) {
+      return config.group;
+    }
+  }
+  return 'D';
+};
+
+// 성장 그룹 배수 가져오기
+export const getGrowthMultiplier = (group: GrowthGroup): number => {
+  const config = GROWTH_GROUPS.find(g => g.group === group);
+  return config?.multiplier ?? 0.6;
 };
 
 // 별 조건 3 타입

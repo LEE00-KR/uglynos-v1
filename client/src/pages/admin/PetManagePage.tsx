@@ -1,15 +1,27 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAdminStore } from '../../stores/adminStore';
-import type { AdminPet, AdminPetBaseStats, AdminPetGrowthRates, AdminPetSprites, ElementType } from '../../types/admin';
-import { ELEMENTS, ELEMENT_LABELS, ELEMENT_COLORS, STATS, STAT_LABELS } from '../../types/admin';
+import type { AdminPet, AdminPetBaseStatsRange, AdminPetBonusPool, AdminPetGrowthRatesRange, AdminPetSprites, ElementType, GrowthGroup } from '../../types/admin';
+import { ELEMENTS, ELEMENT_LABELS, ELEMENT_COLORS, STATS, STAT_LABELS, GROWTH_GROUP_LABELS, GROWTH_GROUP_COLORS, calculateGrowthGroup, MAX_TOTAL_STATS } from '../../types/admin';
 
 const defaultPet: Omit<AdminPet, 'createdAt' | 'updatedAt'> = {
   id: '',
   name: '',
   element: { primary: 'earth', secondary: null, primaryRatio: 100 },
-  baseStats: { str: 10, agi: 10, vit: 10, con: 10, int: 10 },
-  growthRates: { str: 1.50, agi: 1.50, vit: 1.50, con: 1.50, int: 1.50 },
+  baseStatsRange: {
+    hp: { min: 80, max: 120 },
+    atk: { min: 8, max: 12 },
+    def: { min: 8, max: 12 },
+    spd: { min: 8, max: 12 },
+  },
+  bonusPool: { hp: 10, atk: 2, def: 2, spd: 2 },
+  growthRatesRange: {
+    hp: { min: 1.30, max: 1.70 },
+    atk: { min: 1.30, max: 1.70 },
+    def: { min: 1.30, max: 1.70 },
+    spd: { min: 1.30, max: 1.70 },
+  },
+  totalStats: 156,
   sprites: { idle: '', attack: '', hit: '', defend: '', down: '', walk: '' },
   skills: [],
 };
@@ -122,17 +134,30 @@ export default function PetManagePage() {
     });
   };
 
-  const handleBaseStatChange = (stat: keyof AdminPetBaseStats, value: number) => {
+  const handleBaseStatRangeChange = (stat: keyof AdminPetBaseStatsRange, field: 'min' | 'max', value: number) => {
+    const newRange = { ...formData.baseStatsRange[stat], [field]: value };
+    const newBaseStatsRange = { ...formData.baseStatsRange, [stat]: newRange };
+    // Recalculate total stats
+    const totalStats = newBaseStatsRange.hp.max + newBaseStatsRange.atk.max + newBaseStatsRange.def.max + newBaseStatsRange.spd.max;
     setFormData({
       ...formData,
-      baseStats: { ...formData.baseStats, [stat]: value },
+      baseStatsRange: newBaseStatsRange,
+      totalStats,
     });
   };
 
-  const handleGrowthRateChange = (stat: keyof AdminPetGrowthRates, value: number) => {
+  const handleBonusPoolChange = (stat: keyof AdminPetBonusPool, value: number) => {
     setFormData({
       ...formData,
-      growthRates: { ...formData.growthRates, [stat]: value },
+      bonusPool: { ...formData.bonusPool, [stat]: value },
+    });
+  };
+
+  const handleGrowthRateRangeChange = (stat: keyof AdminPetGrowthRatesRange, field: 'min' | 'max', value: number) => {
+    const newRange = { ...formData.growthRatesRange[stat], [field]: value };
+    setFormData({
+      ...formData,
+      growthRatesRange: { ...formData.growthRatesRange, [stat]: newRange },
     });
   };
 
@@ -143,6 +168,18 @@ export default function PetManagePage() {
     });
   };
 
+  const handleSpriteFileUpload = (motion: keyof AdminPetSprites, file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      setFormData({
+        ...formData,
+        sprites: { ...formData.sprites, [motion]: base64 },
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSkillToggle = (skillId: string) => {
     const newSkills = formData.skills.includes(skillId)
       ? formData.skills.filter((id) => id !== skillId)
@@ -150,7 +187,17 @@ export default function PetManagePage() {
     setFormData({ ...formData, skills: newSkills });
   };
 
-  const totalGrowthRate = formData.growthRates.str + formData.growthRates.agi + formData.growthRates.vit + formData.growthRates.con + formData.growthRates.int;
+  // Calculate average growth rate
+  const avgGrowthRate = (
+    (formData.growthRatesRange.hp.min + formData.growthRatesRange.hp.max) / 2 +
+    (formData.growthRatesRange.atk.min + formData.growthRatesRange.atk.max) / 2 +
+    (formData.growthRatesRange.def.min + formData.growthRatesRange.def.max) / 2 +
+    (formData.growthRatesRange.spd.min + formData.growthRatesRange.spd.max) / 2
+  );
+
+  // Calculate growth group
+  const growthGroup: GrowthGroup = calculateGrowthGroup(formData.totalStats);
+  const statPercent = ((formData.totalStats / MAX_TOTAL_STATS) * 100).toFixed(1);
 
   return (
     <div className="p-8">
@@ -347,19 +394,72 @@ export default function PetManagePage() {
                   </div>
                 </div>
 
-                {/* Base Stats */}
+                {/* Growth Group Info */}
+                <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-gray-300">성장 그룹:</span>
+                      <span className={`px-3 py-1 rounded-full text-white font-bold ${GROWTH_GROUP_COLORS[growthGroup]}`}>
+                        {growthGroup}등급
+                      </span>
+                      <span className="text-sm text-gray-400">
+                        ({GROWTH_GROUP_LABELS[growthGroup]})
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      총합 스탯: <span className="text-white font-medium">{formData.totalStats}</span> / {MAX_TOTAL_STATS} ({statPercent}%)
+                    </div>
+                  </div>
+                </div>
+
+                {/* Base Stats Range */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-4">기본 스텟 (1-100)</label>
-                  <div className="grid grid-cols-5 gap-3">
+                  <label className="block text-sm font-medium text-gray-300 mb-4">기본 스텟 범위 (HP: 1-999, 그 외: 1-100)</label>
+                  <div className="space-y-3">
+                    {STATS.map((stat) => (
+                      <div key={stat} className="flex items-center gap-4">
+                        <label className="w-32 text-sm text-gray-400">{STAT_LABELS[stat]}</label>
+                        <div className="flex-1 flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="1"
+                            max={stat === 'hp' ? 999 : 100}
+                            value={formData.baseStatsRange[stat].min}
+                            onChange={(e) => handleBaseStatRangeChange(stat, 'min', parseInt(e.target.value) || 1)}
+                            disabled={!isEditing}
+                            placeholder="최소"
+                            className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                          />
+                          <span className="text-gray-400">~</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max={stat === 'hp' ? 999 : 100}
+                            value={formData.baseStatsRange[stat].max}
+                            onChange={(e) => handleBaseStatRangeChange(stat, 'max', parseInt(e.target.value) || 1)}
+                            disabled={!isEditing}
+                            placeholder="최대"
+                            className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bonus Pool */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-4">보너스 풀 (HP: 0-50, 그 외: 0-10)</label>
+                  <div className="grid grid-cols-4 gap-3">
                     {STATS.map((stat) => (
                       <div key={stat}>
                         <label className="block text-xs text-gray-400 mb-1">{STAT_LABELS[stat]}</label>
                         <input
                           type="number"
-                          min="1"
-                          max="100"
-                          value={formData.baseStats[stat]}
-                          onChange={(e) => handleBaseStatChange(stat, parseInt(e.target.value) || 1)}
+                          min="0"
+                          max={stat === 'hp' ? 50 : 10}
+                          value={formData.bonusPool[stat]}
+                          onChange={(e) => handleBonusPoolChange(stat, parseInt(e.target.value) || 0)}
                           disabled={!isEditing}
                           className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
                         />
@@ -368,28 +468,43 @@ export default function PetManagePage() {
                   </div>
                 </div>
 
-                {/* Growth Rates */}
+                {/* Growth Rates Range */}
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <label className="block text-sm font-medium text-gray-300">성장률 (1.00-3.00)</label>
-                    <span className={`text-sm ${totalGrowthRate >= 5 && totalGrowthRate <= 15 ? 'text-green-400' : 'text-red-400'}`}>
-                      전체 성장률: {totalGrowthRate.toFixed(2)} (5.00~15.00)
+                    <label className="block text-sm font-medium text-gray-300">성장률 범위 (1.00-3.00)</label>
+                    <span className={`text-sm ${avgGrowthRate >= 4 && avgGrowthRate <= 12 ? 'text-green-400' : 'text-yellow-400'}`}>
+                      평균 성장률: {avgGrowthRate.toFixed(2)}
                     </span>
                   </div>
-                  <div className="grid grid-cols-5 gap-3">
+                  <div className="space-y-3">
                     {STATS.map((stat) => (
-                      <div key={stat}>
-                        <label className="block text-xs text-gray-400 mb-1">{STAT_LABELS[stat]}</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="3"
-                          step="0.1"
-                          value={formData.growthRates[stat]}
-                          onChange={(e) => handleGrowthRateChange(stat, parseFloat(e.target.value) || 1)}
-                          disabled={!isEditing}
-                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
-                        />
+                      <div key={stat} className="flex items-center gap-4">
+                        <label className="w-32 text-sm text-gray-400">{STAT_LABELS[stat]}</label>
+                        <div className="flex-1 flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="1"
+                            max="3"
+                            step="0.05"
+                            value={formData.growthRatesRange[stat].min}
+                            onChange={(e) => handleGrowthRateRangeChange(stat, 'min', parseFloat(e.target.value) || 1)}
+                            disabled={!isEditing}
+                            placeholder="최소"
+                            className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                          />
+                          <span className="text-gray-400">~</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max="3"
+                            step="0.05"
+                            value={formData.growthRatesRange[stat].max}
+                            onChange={(e) => handleGrowthRateRangeChange(stat, 'max', parseFloat(e.target.value) || 1)}
+                            disabled={!isEditing}
+                            placeholder="최대"
+                            className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -400,15 +515,49 @@ export default function PetManagePage() {
                   <label className="block text-sm font-medium text-gray-300 mb-4">스프라이트 이미지</label>
                   <div className="grid grid-cols-3 gap-4">
                     {(['idle', 'attack', 'hit', 'defend', 'down', 'walk'] as const).map((motion) => (
-                      <div key={motion}>
-                        <label className="block text-xs text-gray-400 mb-1 capitalize">{motion}</label>
+                      <div key={motion} className="space-y-2">
+                        <label className="block text-xs text-gray-400 capitalize">{motion}</label>
+                        {/* Preview */}
+                        <div className="w-full h-24 bg-gray-700 border border-gray-600 rounded-lg flex items-center justify-center overflow-hidden">
+                          {formData.sprites[motion] ? (
+                            <img
+                              src={formData.sprites[motion]}
+                              alt={motion}
+                              className="max-w-full max-h-full object-contain"
+                            />
+                          ) : (
+                            <span className="text-gray-500 text-xs">미리보기</span>
+                          )}
+                        </div>
+                        {/* File Upload */}
+                        {isEditing && (
+                          <label className="block">
+                            <span className="sr-only">파일 선택</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleSpriteFileUpload(motion, file);
+                              }}
+                              className="block w-full text-xs text-gray-400
+                                file:mr-2 file:py-1 file:px-3
+                                file:rounded file:border-0
+                                file:text-xs file:font-medium
+                                file:bg-primary-600 file:text-white
+                                hover:file:bg-primary-700
+                                file:cursor-pointer cursor-pointer"
+                            />
+                          </label>
+                        )}
+                        {/* URL Input */}
                         <input
                           type="text"
                           value={formData.sprites[motion]}
                           onChange={(e) => handleSpriteChange(motion, e.target.value)}
                           disabled={!isEditing}
-                          placeholder="이미지 URL"
-                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-400 disabled:opacity-50"
+                          placeholder="또는 URL 입력"
+                          className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs placeholder-gray-400 disabled:opacity-50"
                         />
                       </div>
                     ))}
