@@ -47,15 +47,18 @@ CREATE TABLE IF NOT EXISTS admin_pets (
   bonus_def INTEGER NOT NULL DEFAULT 2 CHECK (bonus_def >= 0 AND bonus_def <= 10),
   bonus_spd INTEGER NOT NULL DEFAULT 2 CHECK (bonus_spd >= 0 AND bonus_spd <= 10),
 
-  -- 성장률 범위 (4스텟 시스템)
-  growth_hp_min DECIMAL(4,2) NOT NULL DEFAULT 1.30 CHECK (growth_hp_min >= 1.00 AND growth_hp_min <= 3.00),
-  growth_hp_max DECIMAL(4,2) NOT NULL DEFAULT 1.70 CHECK (growth_hp_max >= 1.00 AND growth_hp_max <= 3.00),
-  growth_atk_min DECIMAL(4,2) NOT NULL DEFAULT 1.30 CHECK (growth_atk_min >= 1.00 AND growth_atk_min <= 3.00),
-  growth_atk_max DECIMAL(4,2) NOT NULL DEFAULT 1.70 CHECK (growth_atk_max >= 1.00 AND growth_atk_max <= 3.00),
-  growth_def_min DECIMAL(4,2) NOT NULL DEFAULT 1.30 CHECK (growth_def_min >= 1.00 AND growth_def_min <= 3.00),
-  growth_def_max DECIMAL(4,2) NOT NULL DEFAULT 1.70 CHECK (growth_def_max >= 1.00 AND growth_def_max <= 3.00),
-  growth_spd_min DECIMAL(4,2) NOT NULL DEFAULT 1.30 CHECK (growth_spd_min >= 1.00 AND growth_spd_min <= 3.00),
-  growth_spd_max DECIMAL(4,2) NOT NULL DEFAULT 1.70 CHECK (growth_spd_max >= 1.00 AND growth_spd_max <= 3.00),
+  -- 성장률 범위 (HP: 0-20, ATK/DEF/SPD: 0-3)
+  growth_hp_min DECIMAL(4,2) NOT NULL DEFAULT 5.00 CHECK (growth_hp_min >= 0 AND growth_hp_min <= 20),
+  growth_hp_max DECIMAL(4,2) NOT NULL DEFAULT 10.00 CHECK (growth_hp_max >= 0 AND growth_hp_max <= 20),
+  growth_atk_min DECIMAL(4,2) NOT NULL DEFAULT 1.00 CHECK (growth_atk_min >= 0 AND growth_atk_min <= 3),
+  growth_atk_max DECIMAL(4,2) NOT NULL DEFAULT 2.00 CHECK (growth_atk_max >= 0 AND growth_atk_max <= 3),
+  growth_def_min DECIMAL(4,2) NOT NULL DEFAULT 1.00 CHECK (growth_def_min >= 0 AND growth_def_min <= 3),
+  growth_def_max DECIMAL(4,2) NOT NULL DEFAULT 2.00 CHECK (growth_def_max >= 0 AND growth_def_max <= 3),
+  growth_spd_min DECIMAL(4,2) NOT NULL DEFAULT 1.00 CHECK (growth_spd_min >= 0 AND growth_spd_min <= 3),
+  growth_spd_max DECIMAL(4,2) NOT NULL DEFAULT 2.00 CHECK (growth_spd_max >= 0 AND growth_spd_max <= 3),
+
+  -- 포획률 (0-100%)
+  capture_rate INTEGER NOT NULL DEFAULT 50 CHECK (capture_rate >= 0 AND capture_rate <= 100),
 
   -- 총합 스탯 (자동 계산용, 성장 그룹 결정에 사용)
   -- total_stats = base_hp_max + base_atk_max + base_def_max + base_spd_max

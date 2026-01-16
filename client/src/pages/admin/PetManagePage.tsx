@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAdminStore } from '../../stores/adminStore';
-import type { AdminPet, AdminPetBaseStatsRange, AdminPetBonusPool, AdminPetGrowthRatesRange, AdminPetSprites, ElementType, GrowthGroup } from '../../types/admin';
-import { ELEMENTS, ELEMENT_LABELS, ELEMENT_COLORS, STATS, STAT_LABELS, GROWTH_GROUP_COLORS, calculateGrowthGroup } from '../../types/admin';
+import type { AdminPet, AdminPetBaseStatsRange, AdminPetBonusPool, AdminPetGrowthRatesRange, AdminPetSprites, ElementType } from '../../types/admin';
+import { ELEMENTS, ELEMENT_LABELS, ELEMENT_COLORS, STATS, STAT_LABELS } from '../../types/admin';
 
 const defaultPet: Omit<AdminPet, 'createdAt' | 'updatedAt'> = {
   id: '',
@@ -16,12 +16,13 @@ const defaultPet: Omit<AdminPet, 'createdAt' | 'updatedAt'> = {
   },
   bonusPool: { hp: 10, atk: 2, def: 2, spd: 2 },
   growthRatesRange: {
-    hp: { min: 1.30, max: 1.70 },
-    atk: { min: 1.30, max: 1.70 },
-    def: { min: 1.30, max: 1.70 },
-    spd: { min: 1.30, max: 1.70 },
+    hp: { min: 5, max: 10 },
+    atk: { min: 1, max: 2 },
+    def: { min: 1, max: 2 },
+    spd: { min: 1, max: 2 },
   },
   totalStats: 156,
+  captureRate: 50,
   sprites: { idle: '', attack: '', hit: '', defend: '', down: '', walk: '' },
   skills: [],
 };
@@ -189,7 +190,18 @@ export default function PetManagePage() {
 
   const isValidGrowthRate = (stat: keyof AdminPetGrowthRatesRange, field: 'min' | 'max') => {
     const value = formData.growthRatesRange[stat][field];
-    return value >= 1 && value <= 3;
+    const max = stat === 'hp' ? 20 : 3;
+    return value >= 0 && value <= max;
+  };
+
+  // Capture rate handlers
+  const handleCaptureRateChange = (value: string) => {
+    const numValue = value === '' ? 0 : parseInt(value);
+    setFormData({ ...formData, captureRate: numValue });
+  };
+
+  const isValidCaptureRate = () => {
+    return formData.captureRate >= 0 && formData.captureRate <= 100;
   };
 
   const handleSpriteChange = (motion: keyof AdminPetSprites, url: string) => {
@@ -224,9 +236,6 @@ export default function PetManagePage() {
     (formData.growthRatesRange.def.min + formData.growthRatesRange.def.max) / 2 +
     (formData.growthRatesRange.spd.min + formData.growthRatesRange.spd.max) / 2
   ) / 3;
-
-  // Calculate growth group
-  const growthGroup: GrowthGroup = calculateGrowthGroup(formData.totalStats);
 
   return (
     <div className="p-8">
@@ -426,18 +435,33 @@ export default function PetManagePage() {
 
                 {/* Growth Group Info */}
                 <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-gray-300">성장 그룹:</span>
-                      <span className="text-sm text-yellow-400">
-                        페트 생성 시 총합 스탯 기반으로 랜덤 부여됨
-                      </span>
-                    </div>
-                    <div className="text-sm text-gray-400">
-                      예상 그룹: <span className={`px-2 py-0.5 rounded text-white font-bold ${GROWTH_GROUP_COLORS[growthGroup]}`}>{growthGroup}</span>
-                      <span className="ml-2">(총합: {formData.totalStats})</span>
-                    </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-gray-300">성장 그룹:</span>
+                    <span className="text-sm text-yellow-400">
+                      페트 생성 시 랜덤 부여됨
+                    </span>
                   </div>
+                </div>
+
+                {/* Capture Rate */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">기본 포획률 (0-100%)</label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="number"
+                      value={formData.captureRate || ''}
+                      onChange={(e) => handleCaptureRateChange(e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="0-100"
+                      className={`w-32 px-3 py-2 bg-gray-700 border rounded-lg text-white disabled:opacity-50 ${
+                        isEditing && !isValidCaptureRate() ? 'border-red-500' : 'border-gray-600'
+                      }`}
+                    />
+                    <span className="text-gray-400 text-sm">%</span>
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    실제 포획률: HP 100% → 4%, HP 50% → 10%, HP 25% → 20%, HP {'<'}10% → 30% (기본값 기준)
+                  </p>
                 </div>
 
                 {/* Base Stats Range */}
@@ -489,7 +513,7 @@ export default function PetManagePage() {
                         <label className="block text-xs text-gray-400 mb-1">{STAT_LABELS[stat]}</label>
                         <input
                           type="number"
-                          value={formData.bonusPool[stat]}
+                          value={formData.bonusPool[stat] || ''}
                           onChange={(e) => handleBonusPoolChange(stat, e.target.value)}
                           disabled={!isEditing}
                           className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white disabled:opacity-50 ${
@@ -504,8 +528,8 @@ export default function PetManagePage() {
                 {/* Growth Rates Range */}
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <label className="block text-sm font-medium text-gray-300">성장률 범위 (1.00-3.00)</label>
-                    <span className={`text-sm ${avgGrowthRate >= 1 && avgGrowthRate <= 3 ? 'text-green-400' : 'text-yellow-400'}`}>
+                    <label className="block text-sm font-medium text-gray-300">성장률 범위 (HP: 0-20, 그 외: 0-3)</label>
+                    <span className={`text-sm ${avgGrowthRate >= 0 && avgGrowthRate <= 3 ? 'text-green-400' : 'text-yellow-400'}`}>
                       평균 성장률 (HP 제외): {avgGrowthRate.toFixed(2)}
                     </span>
                   </div>

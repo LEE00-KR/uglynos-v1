@@ -83,6 +83,8 @@ export interface AdminPet {
   growthRatesRange: AdminPetGrowthRatesRange;
   // 총합 스탯 (자동 계산용)
   totalStats: number;
+  // 포획률 (0-100%)
+  captureRate: number;
   // 스프라이트
   sprites: AdminPetSprites;
   skills: string[];  // skill IDs
@@ -246,6 +248,7 @@ export interface CreateAdminPetRequest {
   baseStatsRange: AdminPetBaseStatsRange;
   bonusPool: AdminPetBonusPool;
   growthRatesRange: AdminPetGrowthRatesRange;
+  captureRate?: number;
   sprites: AdminPetSprites;
   skills: string[];
 }
