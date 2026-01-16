@@ -516,6 +516,14 @@ export const getStages = async (req: Request, res: Response, next: NextFunction)
       background: row.background || '',
       monsters: row.monsters || [],
       wildPets: row.wild_pets || [],
+      expReward: row.exp_reward || 100,
+      goldReward: row.gold_reward || 50,
+      starConditions: {
+        star2Turns: row.star_condition_2_turns || 0,
+        star3Type: row.star_condition_3_type || 'none',
+        star3Value: row.star_condition_3_value || 0,
+      },
+      drops: row.drops || [],
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     }));
@@ -546,6 +554,14 @@ export const getStageById = async (req: Request, res: Response, next: NextFuncti
       background: row.background || '',
       monsters: row.monsters || [],
       wildPets: row.wild_pets || [],
+      expReward: row.exp_reward || 100,
+      goldReward: row.gold_reward || 50,
+      starConditions: {
+        star2Turns: row.star_condition_2_turns || 0,
+        star3Type: row.star_condition_3_type || 'none',
+        star3Value: row.star_condition_3_value || 0,
+      },
+      drops: row.drops || [],
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -567,6 +583,12 @@ export const createStage = async (req: Request, res: Response, next: NextFunctio
       background: body.background,
       monsters: body.monsters || [],
       wild_pets: body.wildPets || [],
+      exp_reward: body.expReward ?? 100,
+      gold_reward: body.goldReward ?? 50,
+      star_condition_2_turns: body.starConditions?.star2Turns ?? 0,
+      star_condition_3_type: body.starConditions?.star3Type ?? 'none',
+      star_condition_3_value: body.starConditions?.star3Value ?? 0,
+      drops: body.drops || [],
     });
 
     if (error) throw error;
@@ -587,6 +609,14 @@ export const updateStage = async (req: Request, res: Response, next: NextFunctio
     if (body.background !== undefined) updates.background = body.background;
     if (body.monsters !== undefined) updates.monsters = body.monsters;
     if (body.wildPets !== undefined) updates.wild_pets = body.wildPets;
+    if (body.expReward !== undefined) updates.exp_reward = body.expReward;
+    if (body.goldReward !== undefined) updates.gold_reward = body.goldReward;
+    if (body.starConditions !== undefined) {
+      updates.star_condition_2_turns = body.starConditions.star2Turns;
+      updates.star_condition_3_type = body.starConditions.star3Type;
+      updates.star_condition_3_value = body.starConditions.star3Value;
+    }
+    if (body.drops !== undefined) updates.drops = body.drops;
 
     const { error } = await supabase
       .from('admin_stages')

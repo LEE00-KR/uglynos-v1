@@ -131,12 +131,38 @@ export interface WildPet {
   spawnRate: number;  // percentage
 }
 
+// 별 조건 3 타입
+export type StarCondition3Type = 'none' | 'no_death' | 'full_hp' | 'use_skill' | 'element_kill';
+
+// 별 조건
+export interface StageStarConditions {
+  star2Turns: number;  // 0이면 비활성화
+  star3Type: StarCondition3Type;
+  star3Value: number;
+}
+
+// 드롭 아이템
+export interface StageDrop {
+  itemId: string;
+  itemType: 'consumable' | 'equipment' | 'material';
+  dropRate: number;  // percentage (0-100)
+  minQty: number;
+  maxQty: number;
+}
+
 export interface AdminStage {
   id: string;
   name: string;
   background: string;
   monsters: StageMonster[];
   wildPets: WildPet[];
+  // 보상 시스템
+  expReward: number;
+  goldReward: number;
+  // 별 조건
+  starConditions: StageStarConditions;
+  // 드롭 테이블
+  drops: StageDrop[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -209,6 +235,10 @@ export interface CreateAdminStageRequest {
   background: string;
   monsters: StageMonster[];
   wildPets: WildPet[];
+  expReward?: number;
+  goldReward?: number;
+  starConditions?: StageStarConditions;
+  drops?: StageDrop[];
 }
 
 export interface UpdateAdminStageRequest extends Partial<CreateAdminStageRequest> {}

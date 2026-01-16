@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS admin_stage_groups (
 );
 
 -- =====================================================
--- 4. 개별 스테이지 관리 (admin_stages) - PRD 방식
+-- 4. 개별 스테이지 관리 (admin_stages) - PRD 방식 + 보상/별조건/드롭
 -- =====================================================
 CREATE TABLE IF NOT EXISTS admin_stages (
   id VARCHAR(50) PRIMARY KEY,
@@ -98,6 +98,22 @@ CREATE TABLE IF NOT EXISTS admin_stages (
   -- 출현 페트 (JSON 배열, 1~2)
   -- 예: [{"petId": "pet_003", "spawnRate": 30}]
   wild_pets JSONB NOT NULL DEFAULT '[]',
+
+  -- 보상 시스템
+  exp_reward INTEGER NOT NULL DEFAULT 100 CHECK (exp_reward >= 0),
+  gold_reward INTEGER NOT NULL DEFAULT 50 CHECK (gold_reward >= 0),
+
+  -- 별 조건 (3성 조건)
+  -- star1: 클리어만 하면 획득
+  -- star2: 특정 턴 내 클리어 (0이면 비활성화)
+  -- star3: 특정 조건 (type + value)
+  star_condition_2_turns INTEGER DEFAULT 0,
+  star_condition_3_type VARCHAR(30) DEFAULT 'none' CHECK (star_condition_3_type IN ('none', 'no_death', 'full_hp', 'use_skill', 'element_kill')),
+  star_condition_3_value INTEGER DEFAULT 0,
+
+  -- 드롭 테이블 (JSON 배열)
+  -- 예: [{"itemId": "item_001", "itemType": "material", "dropRate": 30, "minQty": 1, "maxQty": 3}]
+  drops JSONB NOT NULL DEFAULT '[]',
 
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()

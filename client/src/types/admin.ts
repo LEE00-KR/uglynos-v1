@@ -131,12 +131,41 @@ export interface WildPet {
   spawnRate: number;
 }
 
+// 별 조건 3 타입
+export type StarCondition3Type = 'none' | 'no_death' | 'full_hp' | 'use_skill' | 'element_kill';
+
+// 별 조건
+export interface StageStarConditions {
+  star2Turns: number;  // 0이면 비활성화
+  star3Type: StarCondition3Type;
+  star3Value: number;
+}
+
+// 드롭 아이템 타입
+export type DropItemType = 'consumable' | 'equipment' | 'material';
+
+// 드롭 아이템
+export interface StageDrop {
+  itemId: string;
+  itemType: DropItemType;
+  dropRate: number;  // 0-100%
+  minQty: number;
+  maxQty: number;
+}
+
 export interface AdminStage {
   id: string;
   name: string;
   background: string;
   monsters: StageMonster[];
   wildPets: WildPet[];
+  // 보상 시스템
+  expReward: number;
+  goldReward: number;
+  // 별 조건
+  starConditions: StageStarConditions;
+  // 드롭 테이블
+  drops: StageDrop[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -224,3 +253,19 @@ export const STAT_LABELS: Record<string, string> = {
   con: 'CON (정신)',
   int: 'INT (지능)',
 };
+
+// 별 조건 3 타입
+export const STAR_CONDITION_3_TYPES: { value: StarCondition3Type; label: string; hasValue: boolean }[] = [
+  { value: 'none', label: '없음', hasValue: false },
+  { value: 'no_death', label: '아군 사망 없이 클리어', hasValue: false },
+  { value: 'full_hp', label: '체력 N% 이상 유지', hasValue: true },
+  { value: 'use_skill', label: '특정 스킬 N회 사용', hasValue: true },
+  { value: 'element_kill', label: '특정 속성으로 N마리 처치', hasValue: true },
+];
+
+// 드롭 아이템 타입
+export const DROP_ITEM_TYPES: { value: DropItemType; label: string }[] = [
+  { value: 'consumable', label: '소비' },
+  { value: 'equipment', label: '장비' },
+  { value: 'material', label: '재료' },
+];

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAdminStore } from '../../stores/adminStore';
-import type { AdminStage, StageMonster, WildPet, MonsterStats } from '../../types/admin';
-import { STATS, STAT_LABELS } from '../../types/admin';
+import type { AdminStage, StageMonster, WildPet, MonsterStats, StageDrop, StarCondition3Type, DropItemType } from '../../types/admin';
+import { STATS, STAT_LABELS, STAR_CONDITION_3_TYPES, DROP_ITEM_TYPES } from '../../types/admin';
 
 const defaultStage: Omit<AdminStage, 'createdAt' | 'updatedAt'> = {
   id: '',
@@ -10,6 +10,14 @@ const defaultStage: Omit<AdminStage, 'createdAt' | 'updatedAt'> = {
   background: '',
   monsters: [],
   wildPets: [],
+  expReward: 100,
+  goldReward: 50,
+  starConditions: {
+    star2Turns: 0,
+    star3Type: 'none',
+    star3Value: 0,
+  },
+  drops: [],
 };
 
 const defaultMonsterStats: MonsterStats = {
@@ -192,6 +200,30 @@ export default function StageManagePage() {
     setFormData({ ...formData, wildPets: newWildPets });
   };
 
+  // Drop management
+  const addDrop = () => {
+    const newDrop: StageDrop = {
+      itemId: '',
+      itemType: 'material',
+      dropRate: 30,
+      minQty: 1,
+      maxQty: 1,
+    };
+    setFormData({ ...formData, drops: [...formData.drops, newDrop] });
+  };
+
+  const updateDrop = (index: number, updates: Partial<StageDrop>) => {
+    const newDrops = [...formData.drops];
+    newDrops[index] = { ...newDrops[index], ...updates };
+    setFormData({ ...formData, drops: newDrops });
+  };
+
+  const removeDrop = (index: number) => {
+    const newDrops = [...formData.drops];
+    newDrops.splice(index, 1);
+    setFormData({ ...formData, drops: newDrops });
+  };
+
   const getPetName = (petId: string) => {
     const pet = pets.find((p) => p.id === petId);
     return pet?.name || petId;
@@ -337,6 +369,193 @@ export default function StageManagePage() {
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 disabled:opacity-50"
                   />
                 </div>
+              </div>
+
+              {/* Rewards & Star Conditions */}
+              <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">보상 및 별 조건</h3>
+
+                {/* Rewards */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">경험치 보상</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.expReward}
+                      onChange={(e) => setFormData({ ...formData, expReward: parseInt(e.target.value) || 0 })}
+                      disabled={!isEditing}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">골드 보상</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.goldReward}
+                      onChange={(e) => setFormData({ ...formData, goldReward: parseInt(e.target.value) || 0 })}
+                      disabled={!isEditing}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+
+                {/* Star Conditions */}
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-400">별 조건 (1성: 클리어 시 자동 획득)</p>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">2성 조건: N턴 이내 클리어</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.starConditions.star2Turns}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          starConditions: { ...formData.starConditions, star2Turns: parseInt(e.target.value) || 0 }
+                        })}
+                        disabled={!isEditing}
+                        placeholder="0 = 비활성화"
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 disabled:opacity-50"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">0으로 설정 시 2성 조건 비활성화</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">3성 조건</label>
+                      <select
+                        value={formData.starConditions.star3Type}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          starConditions: { ...formData.starConditions, star3Type: e.target.value as StarCondition3Type }
+                        })}
+                        disabled={!isEditing}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                      >
+                        {STAR_CONDITION_3_TYPES.map((cond) => (
+                          <option key={cond.value} value={cond.value}>
+                            {cond.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {STAR_CONDITION_3_TYPES.find(c => c.value === formData.starConditions.star3Type)?.hasValue && (
+                    <div className="w-1/2">
+                      <label className="block text-sm font-medium text-gray-300 mb-2">3성 조건 수치</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.starConditions.star3Value}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          starConditions: { ...formData.starConditions, star3Value: parseInt(e.target.value) || 0 }
+                        })}
+                        disabled={!isEditing}
+                        placeholder="예: 체력 80% 이상, 스킬 3회 사용"
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 disabled:opacity-50"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Drop Table */}
+              <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">드롭 테이블</h3>
+                  {isEditing && (
+                    <button
+                      onClick={addDrop}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                    >
+                      + 드롭 아이템 추가
+                    </button>
+                  )}
+                </div>
+
+                {formData.drops.length === 0 ? (
+                  <p className="text-gray-400 text-center py-4">설정된 드롭 아이템이 없습니다.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {formData.drops.map((drop, index) => (
+                      <div key={index} className="flex items-center gap-4 p-3 bg-gray-700 rounded-lg">
+                        <div className="flex-1 grid grid-cols-5 gap-3">
+                          <div>
+                            <label className="block text-xs text-gray-400 mb-1">아이템 ID</label>
+                            <input
+                              type="text"
+                              value={drop.itemId}
+                              onChange={(e) => updateDrop(index, { itemId: e.target.value })}
+                              disabled={!isEditing}
+                              placeholder="item_001"
+                              className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm disabled:opacity-50"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-400 mb-1">타입</label>
+                            <select
+                              value={drop.itemType}
+                              onChange={(e) => updateDrop(index, { itemType: e.target.value as DropItemType })}
+                              disabled={!isEditing}
+                              className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm disabled:opacity-50"
+                            >
+                              {DROP_ITEM_TYPES.map((type) => (
+                                <option key={type.value} value={type.value}>
+                                  {type.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-400 mb-1">드롭률 (%)</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="100"
+                              value={drop.dropRate}
+                              onChange={(e) => updateDrop(index, { dropRate: parseInt(e.target.value) || 1 })}
+                              disabled={!isEditing}
+                              className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm disabled:opacity-50"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-400 mb-1">최소 수량</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={drop.minQty}
+                              onChange={(e) => updateDrop(index, { minQty: parseInt(e.target.value) || 1 })}
+                              disabled={!isEditing}
+                              className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm disabled:opacity-50"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-400 mb-1">최대 수량</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={drop.maxQty}
+                              onChange={(e) => updateDrop(index, { maxQty: parseInt(e.target.value) || 1 })}
+                              disabled={!isEditing}
+                              className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm disabled:opacity-50"
+                            />
+                          </div>
+                        </div>
+                        {isEditing && (
+                          <button
+                            onClick={() => removeDrop(index)}
+                            className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Monster Configuration */}
