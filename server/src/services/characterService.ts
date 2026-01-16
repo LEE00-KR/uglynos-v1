@@ -55,7 +55,7 @@ export const createCharacter = async (userId: string, input: CreateCharacterInpu
     throw new ValidationError('캐릭터는 최대 3개까지 생성할 수 있습니다');
   }
 
-  // Create character
+  // Create character - 4스탯 시스템: HP, ATK, DEF, SPD
   const { data, error } = await supabase
     .from('characters')
     .insert({
@@ -67,13 +67,13 @@ export const createCharacter = async (userId: string, input: CreateCharacterInpu
       appearance_hair: input.appearance.hair,
       appearance_skin: input.appearance.skin,
       element_primary: input.element.primary,
-      element_secondary: input.element.secondary || null,
+      element_secondary: input.element.secondary,
       element_primary_ratio: input.element.primaryRatio,
-      stat_str: input.stats.str,
-      stat_agi: input.stats.agi,
-      stat_vit: input.stats.vit,
-      stat_con: input.stats.con,
-      stat_int: input.stats.int,
+      stat_hp: input.stats.hp,
+      stat_atk: input.stats.atk,
+      stat_def: input.stats.def,
+      stat_spd: input.stats.spd,
+      current_hp: input.stats.hp, // 현재 HP = 최대 HP
       level: 1,
       exp: 0,
       gold: 1000,
@@ -100,13 +100,14 @@ export const selectCharacter = async (characterId: string, userId: string) => {
   return { accessToken, character };
 };
 
+// 4스탯 시스템: HP, ATK, DEF, SPD
 export const distributeStats = async (
   characterId: string,
-  stats: { str?: number; agi?: number; vit?: number; con?: number; int?: number }
+  stats: { hp?: number; atk?: number; def?: number; spd?: number }
 ) => {
   const { data: character } = await supabase
     .from('characters')
-    .select('stat_points')
+    .select('stat_points, stat_hp')
     .eq('id', characterId)
     .single();
 
@@ -120,14 +121,17 @@ export const distributeStats = async (
     throw new ValidationError('스탯 포인트가 부족합니다');
   }
 
+  // HP가 증가하면 current_hp도 함께 증가
+  const hpIncrease = stats.hp || 0;
+
   const { data, error } = await supabase
     .from('characters')
     .update({
-      stat_str: supabase.rpc('increment', { x: stats.str || 0 }),
-      stat_agi: supabase.rpc('increment', { x: stats.agi || 0 }),
-      stat_vit: supabase.rpc('increment', { x: stats.vit || 0 }),
-      stat_con: supabase.rpc('increment', { x: stats.con || 0 }),
-      stat_int: supabase.rpc('increment', { x: stats.int || 0 }),
+      stat_hp: supabase.rpc('increment', { x: stats.hp || 0 }),
+      stat_atk: supabase.rpc('increment', { x: stats.atk || 0 }),
+      stat_def: supabase.rpc('increment', { x: stats.def || 0 }),
+      stat_spd: supabase.rpc('increment', { x: stats.spd || 0 }),
+      current_hp: supabase.rpc('increment', { x: hpIncrease }),
       stat_points: character.stat_points - totalPoints,
     })
     .eq('id', characterId)

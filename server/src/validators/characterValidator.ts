@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const elementTypes = ['earth', 'wind', 'fire', 'water'] as const;
+// 인접 속성 (조합 가능): 지화(earth+fire), 수풍(water+wind) 불가
 const adjacentElements: Record<string, string[]> = {
   earth: ['wind', 'water'],
   wind: ['earth', 'fire'],
@@ -24,22 +25,21 @@ export const createCharacterSchema = z.object({
 
   element: z.object({
     primary: z.enum(elementTypes),
-    secondary: z.enum(elementTypes).optional(),
-    primaryRatio: z.number().int().min(50).max(100).default(100),
+    secondary: z.enum(elementTypes),
+    primaryRatio: z.number().int().min(0).max(100).default(50),
   }).refine((data) => {
-    if (!data.secondary) return true;
     return adjacentElements[data.primary].includes(data.secondary);
-  }, '인접 속성만 조합할 수 있습니다'),
+  }, '인접 속성만 조합할 수 있습니다 (지화, 수풍 조합 불가)'),
 
+  // 4스탯 시스템: HP, ATK, DEF, SPD
   stats: z.object({
-    str: z.number().int().min(5),
-    agi: z.number().int().min(5),
-    vit: z.number().int().min(5),
-    con: z.number().int().min(5),
-    int: z.number().int().min(5),
+    hp: z.number().int().min(10),
+    atk: z.number().int().min(5),
+    def: z.number().int().min(5),
+    spd: z.number().int().min(5),
   }).refine((data) => {
-    const total = data.str + data.agi + data.vit + data.con + data.int;
-    return total === 45; // 초기 25 + 보너스 20
+    const total = data.hp + data.atk + data.def + data.spd;
+    return total === 45; // 초기 25 (10+5+5+5) + 보너스 20
   }, '스탯 총합은 45여야 합니다'),
 });
 
