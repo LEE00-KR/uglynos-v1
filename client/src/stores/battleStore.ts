@@ -28,6 +28,9 @@ export interface BattleUnit {
   isCapturable?: boolean;
   isRareColor?: boolean;
   loyalty?: number;
+  isRepresentative?: boolean;
+  isRiding?: boolean;
+  templateId?: number;
 }
 
 export interface StatusEffect {

@@ -197,6 +197,8 @@ class BattleService {
         loyalty: pet.loyalty,
         isAlive: true,
         isDefending: false,
+        isRepresentative: pet.is_representative || false,
+        isRiding: pet.is_riding || false,
       });
     }
 

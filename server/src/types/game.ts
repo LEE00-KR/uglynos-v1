@@ -81,6 +81,7 @@ export interface BattleUnit {
   skills?: PetSkill[];
   loyalty?: number;
   isRiding?: boolean;
+  isRepresentative?: boolean;
   ridingPetId?: string;
   isCapturable?: boolean;
   isRareColor?: boolean;
