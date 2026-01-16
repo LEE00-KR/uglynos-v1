@@ -369,6 +369,33 @@ class BattleService {
               name: target.name,
               isRareColor: target.isRareColor || false,
             };
+
+            // Save captured pet to DB
+            const characterId = battleState.participants[0];
+            const petData = captureManager.createCapturedPet(target, characterId);
+            const { error: insertError } = await supabase.from('pets').insert({
+              template_id: petData.templateId,
+              character_id: petData.characterId,
+              nickname: petData.nickname,
+              level: petData.level,
+              exp: petData.exp,
+              stat_str: petData.stat_str,
+              stat_agi: petData.stat_agi,
+              stat_vit: petData.stat_vit,
+              stat_con: petData.stat_con,
+              stat_int: petData.stat_int,
+              growth_str: petData.growth_str,
+              growth_agi: petData.growth_agi,
+              growth_vit: petData.growth_vit,
+              growth_con: petData.growth_con,
+              growth_int: petData.growth_int,
+              loyalty: petData.loyalty,
+              is_rare_color: petData.isRareColor,
+              is_starter: petData.isStarter,
+            });
+            if (insertError) {
+              console.error('Failed to save captured pet:', insertError);
+            }
           }
         }
       }
