@@ -1,6 +1,9 @@
 import React from 'react';
 import { useBattleStore, selectAllies, selectEnemies } from '../../stores/battleStore';
+import { useGameStore } from '../../stores/gameStore';
 import type { BattleUnit } from '../../stores/battleStore';
+
+const MAX_PET_SLOTS = 20; // 최대 펫 슬롯 수
 
 interface ActionButtonProps {
   icon: string;
@@ -8,6 +11,7 @@ interface ActionButtonProps {
   onClick: () => void;
   disabled?: boolean;
   highlight?: boolean;
+  showX?: boolean; // X 표시 여부
 }
 
 const ActionButton: React.FC<ActionButtonProps> = ({
@@ -16,12 +20,13 @@ const ActionButton: React.FC<ActionButtonProps> = ({
   onClick,
   disabled = false,
   highlight = false,
+  showX = false,
 }) => (
   <button
     onClick={onClick}
     disabled={disabled}
     className={`
-      flex flex-col items-center justify-center
+      flex flex-col items-center justify-center relative
       w-16 h-16 rounded-lg border-2 transition-all
       ${disabled
         ? 'bg-gray-700 border-gray-600 text-gray-500 cursor-not-allowed'
@@ -31,6 +36,9 @@ const ActionButton: React.FC<ActionButtonProps> = ({
       }
     `}
   >
+    {showX && (
+      <span className="absolute top-0 right-0 text-red-500 text-lg font-bold -mt-1 -mr-1">✕</span>
+    )}
     <span className="text-2xl">{icon}</span>
     <span className="text-xs mt-1">{label}</span>
   </button>
@@ -131,12 +139,6 @@ const BattleActionMenu: React.FC = () => {
     selectTarget(playerCharacter.id);
   };
 
-  const handleWait = () => {
-    if (!playerCharacter) return;
-    selectAction({ actorId: playerCharacter.id, type: 'wait' });
-    selectTarget(playerCharacter.id);
-  };
-
   // Handle pet action selection
   const handlePetAction = (pet: BattleUnit, actionType: 'attack' | 'defend' | 'wait') => {
     if (actionType === 'attack') {
@@ -149,6 +151,11 @@ const BattleActionMenu: React.FC = () => {
 
   // Check if any enemy is capturable
   const hasCapturableTarget = enemies.some(e => e.isCapturable && e.level === 1 && e.isAlive);
+
+  // Check if pet slots are full
+  const myPets = useGameStore((state) => state.pets);
+  const isPetSlotsFull = myPets.length >= MAX_PET_SLOTS;
+  const canCapture = hasCapturableTarget && !isPetSlotsFull;
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2">
@@ -289,13 +296,8 @@ const BattleActionMenu: React.FC = () => {
             icon="🪤"
             label="포획"
             onClick={handleCapture}
-            disabled={hasPlayerAction || isSubmitting || !hasCapturableTarget}
-          />
-          <ActionButton
-            icon="⏳"
-            label="대기"
-            onClick={handleWait}
-            disabled={hasPlayerAction || isSubmitting}
+            disabled={hasPlayerAction || isSubmitting || !canCapture}
+            showX={isPetSlotsFull}
           />
           <ActionButton
             icon="🏃"

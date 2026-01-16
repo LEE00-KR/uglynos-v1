@@ -398,6 +398,32 @@ class BattleService {
             }
           }
         }
+
+        // Check for flee - execute actual flee logic
+        if (action.type === 'flee') {
+          const charUnit = battleState.units.get(action.actorId);
+          const enemies = Array.from(battleState.units.values()).filter(
+            (u) => u.type === 'enemy' && u.isAlive
+          );
+
+          if (enemies.length === 0) {
+            battleState.phase = 'victory';
+          } else {
+            const avgEnemySpd = enemies.reduce((s, e) => s + e.stats.spd, 0) / enemies.length;
+            const fleeChance = Math.max(
+              10,
+              Math.min(90, 30 + (charUnit?.stats.spd || 10) - avgEnemySpd)
+            );
+
+            const success = Math.random() * 100 < fleeChance;
+            if (success) {
+              battleState.phase = 'fled';
+              results[results.length - 1].message = `${charUnit?.name} 도주 성공!`;
+            } else {
+              results[results.length - 1].message = `${charUnit?.name} 도주 실패!`;
+            }
+          }
+        }
       }
 
       const end = turnManager.checkBattleEnd(battleState);
