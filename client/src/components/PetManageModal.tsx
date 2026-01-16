@@ -17,6 +17,8 @@ interface PetDetail {
   is_rare_color: boolean;
   is_starter: boolean;
   in_storage: boolean;
+  is_representative: boolean;
+  standby_slot: number | null;
   // 4스탯 시스템: HP, ATK, DEF, SPD
   stat_hp: number;
   stat_atk: number;
