@@ -17,6 +17,8 @@ interface PetDetail {
   is_rare_color: boolean;
   is_starter: boolean;
   in_storage: boolean;
+  is_representative: boolean;
+  standby_slot: number | null;
   // 4스탯 시스템: HP, ATK, DEF, SPD
   stat_hp: number;
   stat_atk: number;
@@ -33,7 +35,7 @@ interface PetDetail {
   };
 }
 
-type TabType = 'active' | 'storage' | 'party';
+type TabType = 'active' | 'storage' | 'party' | 'standby';
 
 const MAX_ACTIVE_PETS = 6;
 const MAX_STORAGE_PETS = 20;
@@ -215,6 +217,66 @@ export default function PetManageModal({ onClose }: PetManageModalProps) {
     }
   };
 
+  const handleSetRepresentative = async (petId: string) => {
+    try {
+      setActionLoading(true);
+      await petApi.setRepresentative(petId);
+      await fetchPets();
+      if (selectedPet?.id === petId) {
+        setSelectedPet(prev => prev ? { ...prev, is_representative: true } : null);
+      }
+    } catch (error) {
+      console.error('Failed to set representative:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUnsetRepresentative = async (petId: string) => {
+    try {
+      setActionLoading(true);
+      await petApi.unsetRepresentative(petId);
+      await fetchPets();
+      if (selectedPet?.id === petId) {
+        setSelectedPet(prev => prev ? { ...prev, is_representative: false } : null);
+      }
+    } catch (error) {
+      console.error('Failed to unset representative:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSetStandbySlot = async (petId: string, slot: number) => {
+    try {
+      setActionLoading(true);
+      await petApi.setStandbySlot(petId, slot);
+      await fetchPets();
+      if (selectedPet?.id === petId) {
+        setSelectedPet(prev => prev ? { ...prev, standby_slot: slot } : null);
+      }
+    } catch (error) {
+      console.error('Failed to set standby slot:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleClearStandbySlot = async (petId: string) => {
+    try {
+      setActionLoading(true);
+      await petApi.clearStandbySlot(petId);
+      await fetchPets();
+      if (selectedPet?.id === petId) {
+        setSelectedPet(prev => prev ? { ...prev, standby_slot: null } : null);
+      }
+    } catch (error) {
+      console.error('Failed to clear standby slot:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const getElementIcon = (element: string) => {
     const icons: { [key: string]: string } = {
       earth: '🌍',
@@ -288,10 +350,18 @@ export default function PetManageModal({ onClose }: PetManageModalProps) {
             P{pet.party_slot}
           </div>
         )}
+        {pet.standby_slot && !pet.party_slot && (
+          <div className="absolute top-0 right-0 bg-blue-500 text-white text-[8px] px-1 rounded-bl">
+            S{pet.standby_slot}
+          </div>
+        )}
+        {pet.is_representative && (
+          <div className="absolute top-0 left-0 text-pink-400 text-[10px]">👑</div>
+        )}
         {pet.is_riding && (
           <div className="absolute bottom-0 left-0 text-[10px]">🏇</div>
         )}
-        {pet.is_rare_color && (
+        {pet.is_rare_color && !pet.is_representative && (
           <div className="absolute top-0 left-0 text-yellow-400 text-[10px]">★</div>
         )}
       </button>
@@ -326,6 +396,7 @@ export default function PetManageModal({ onClose }: PetManageModalProps) {
             { id: 'active' as TabType, label: '보유 펫', icon: '🐾' },
             { id: 'storage' as TabType, label: '창고', icon: '📦' },
             { id: 'party' as TabType, label: '파티', icon: '⚔️' },
+            { id: 'standby' as TabType, label: '대기/대표', icon: '👑' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -388,6 +459,97 @@ export default function PetManageModal({ onClose }: PetManageModalProps) {
                 <p className="text-sm text-slate-400 mt-4">
                   💡 보유 펫 탭에서 펫을 선택한 후 파티에 추가할 수 있습니다.
                 </p>
+              </div>
+            ) : activeTab === 'standby' ? (
+              /* Standby & Representative Management View */
+              <div className="space-y-6">
+                {/* Representative Pet Section */}
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-3">👑 대표 펫</h3>
+                  <div className="bg-slate-700/50 rounded-xl p-4 border border-slate-600">
+                    {(() => {
+                      const repPet = activePets.find(p => p.is_representative);
+                      if (repPet) {
+                        return (
+                          <div className="flex items-center gap-4">
+                            <div className={`w-16 h-16 rounded-lg border-2 ${getRarityColor(repPet.template.rarity)} bg-slate-800 flex items-center justify-center`}>
+                              <span className="text-3xl">{getElementIcon(repPet.template.element_primary)}</span>
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-medium text-white">
+                                {repPet.nickname || repPet.template.name}
+                              </div>
+                              <div className="text-sm text-slate-400">Lv.{repPet.level}</div>
+                            </div>
+                            <button
+                              onClick={() => handleUnsetRepresentative(repPet.id)}
+                              disabled={actionLoading}
+                              className="px-3 py-2 bg-slate-600 hover:bg-slate-500 rounded-lg text-sm transition-colors disabled:opacity-50"
+                            >
+                              해제
+                            </button>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="text-center text-slate-500 py-4">
+                          <span className="text-2xl block mb-1">👑</span>
+                          <span className="text-sm">대표 펫이 없습니다</span>
+                          <p className="text-xs mt-2">보유 펫 탭에서 대표로 지정하세요</p>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    💡 대표 펫은 항상 전투에 참여하며 교체할 수 없습니다.
+                  </p>
+                </div>
+
+                {/* Standby Slots Section */}
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-3">📋 대기 슬롯</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {[1, 2, 3, 4].map((slot) => {
+                      const standbyPet = activePets.find(p => p.standby_slot === slot);
+                      return (
+                        <div
+                          key={slot}
+                          className={`p-4 rounded-xl border-2 transition-all ${
+                            standbyPet
+                              ? `bg-slate-700/50 ${getRarityColor(standbyPet.template.rarity)}`
+                              : 'bg-slate-800/50 border-dashed border-slate-600'
+                          }`}
+                        >
+                          <div className="text-xs text-slate-400 mb-2">대기 {slot}</div>
+                          {standbyPet ? (
+                            <div className="text-center">
+                              <div className="text-3xl mb-2">{getElementIcon(standbyPet.template.element_primary)}</div>
+                              <div className="font-medium text-white truncate text-sm">
+                                {standbyPet.nickname || standbyPet.template.name}
+                              </div>
+                              <div className="text-xs text-slate-400">Lv.{standbyPet.level}</div>
+                              <button
+                                onClick={() => handleClearStandbySlot(standbyPet.id)}
+                                disabled={actionLoading}
+                                className="mt-2 px-3 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors disabled:opacity-50"
+                              >
+                                제거
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="text-center text-slate-500 py-2">
+                              <span className="text-xl block mb-1">+</span>
+                              <span className="text-xs">비어있음</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    💡 전투 중 대표/탑승 펫이 아닌 펫과 대기 슬롯의 펫을 교체할 수 있습니다.
+                  </p>
+                </div>
               </div>
             ) : (
               /* Active/Storage Pet View */
@@ -459,7 +621,7 @@ export default function PetManageModal({ onClose }: PetManageModalProps) {
           </div>
 
           {/* Right - Pet Info Panel */}
-          {activeTab !== 'party' && (
+          {activeTab !== 'party' && activeTab !== 'standby' && (
             <div className="w-64 bg-slate-900/50 p-4 border-l border-slate-700 overflow-y-auto">
               {selectedPet ? (
                 <div className="space-y-4">
@@ -605,10 +767,58 @@ export default function PetManageModal({ onClose }: PetManageModalProps) {
                           )
                         )}
 
+                        {/* Representative Pet */}
+                        {selectedPet.is_representative ? (
+                          <button
+                            onClick={() => handleUnsetRepresentative(selectedPet.id)}
+                            disabled={actionLoading}
+                            className="w-full py-2 bg-pink-600 hover:bg-pink-500 rounded-lg text-sm transition-colors disabled:opacity-50"
+                          >
+                            👑 대표 해제
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleSetRepresentative(selectedPet.id)}
+                            disabled={actionLoading}
+                            className="w-full py-2 bg-pink-600 hover:bg-pink-500 rounded-lg text-sm transition-colors disabled:opacity-50"
+                          >
+                            👑 대표로 지정
+                          </button>
+                        )}
+
+                        {/* Standby Slots */}
+                        {!selectedPet.is_representative && !selectedPet.is_riding && (
+                          selectedPet.standby_slot ? (
+                            <button
+                              onClick={() => handleClearStandbySlot(selectedPet.id)}
+                              disabled={actionLoading}
+                              className="w-full py-2 bg-blue-500 hover:bg-blue-400 rounded-lg text-sm transition-colors disabled:opacity-50"
+                            >
+                              📋 대기 슬롯 해제 (슬롯 {selectedPet.standby_slot})
+                            </button>
+                          ) : (
+                            <div className="space-y-1">
+                              <div className="text-xs text-slate-400 text-center">대기 슬롯 배치</div>
+                              <div className="flex gap-1">
+                                {[1, 2, 3, 4].map((slot) => (
+                                  <button
+                                    key={slot}
+                                    onClick={() => handleSetStandbySlot(selectedPet.id, slot)}
+                                    disabled={actionLoading}
+                                    className="flex-1 py-2 bg-blue-500 hover:bg-blue-400 rounded text-sm transition-colors disabled:opacity-50"
+                                  >
+                                    {slot}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        )}
+
                         <button
                           onClick={() => handleMoveToStorage(selectedPet.id)}
                           disabled={actionLoading || storagePets.length >= MAX_STORAGE_PETS}
-                          className="w-full py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm transition-colors disabled:opacity-50"
+                          className="w-full py-2 bg-slate-600 hover:bg-slate-500 rounded-lg text-sm transition-colors disabled:opacity-50"
                         >
                           📦 창고로 이동
                         </button>

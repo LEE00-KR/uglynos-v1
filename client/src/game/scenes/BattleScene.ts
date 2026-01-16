@@ -114,8 +114,6 @@ export class BattleScene extends Phaser.Scene {
     // Initial turn indicator update
     this.updateTurnIndicator(state.turnNumber);
 
-    // Create back button (for testing)
-    this.createBackButton();
   }
 
   private createUnitsFromStore(state: ReturnType<typeof useBattleStore.getState>) {
@@ -366,23 +364,6 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private createBackButton(): void {
-    const backBtn = this.add.rectangle(80, 540, 140, 35, 0x333333, 0.8)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerover', () => backBtn.setFillStyle(0x555555))
-      .on('pointerout', () => backBtn.setFillStyle(0x333333))
-      .on('pointerdown', () => this.exitBattle());
-
-    this.add.text(80, 540, '🏠 마을로 돌아가기', {
-      fontSize: '12px',
-      color: '#ffffff',
-    }).setOrigin(0.5);
-  }
-
-  private exitBattle(): void {
-    useBattleStore.getState().reset();
-    this.scene.start('MainScene');
-  }
 
   update(): void {
     // Update status effect icons
