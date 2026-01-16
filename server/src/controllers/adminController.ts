@@ -34,22 +34,23 @@ export const getPets = async (req: Request, res: Response, next: NextFunction) =
       id: row.id,
       name: row.name,
       element: {
-        earth: row.element_earth,
-        water: row.element_water,
-        fire: row.element_fire,
-        wind: row.element_wind,
+        primary: row.element_primary,
+        secondary: row.element_secondary || null,
+        primaryRatio: row.element_primary_ratio,
       },
       baseStats: {
-        hp: row.base_hp,
-        atk: row.base_atk,
-        def: row.base_def,
-        spd: row.base_spd,
+        str: row.base_str,
+        agi: row.base_agi,
+        vit: row.base_vit,
+        con: row.base_con,
+        int: row.base_int,
       },
       growthRates: {
-        hp: parseFloat(row.growth_hp),
-        atk: parseFloat(row.growth_atk),
-        def: parseFloat(row.growth_def),
-        spd: parseFloat(row.growth_spd),
+        str: parseFloat(row.growth_str),
+        agi: parseFloat(row.growth_agi),
+        vit: parseFloat(row.growth_vit),
+        con: parseFloat(row.growth_con),
+        int: parseFloat(row.growth_int),
       },
       sprites: {
         idle: row.sprite_idle || '',
@@ -105,22 +106,23 @@ export const getPetById = async (req: Request, res: Response, next: NextFunction
       id: row.id,
       name: row.name,
       element: {
-        earth: row.element_earth,
-        water: row.element_water,
-        fire: row.element_fire,
-        wind: row.element_wind,
+        primary: row.element_primary,
+        secondary: row.element_secondary || null,
+        primaryRatio: row.element_primary_ratio,
       },
       baseStats: {
-        hp: row.base_hp,
-        atk: row.base_atk,
-        def: row.base_def,
-        spd: row.base_spd,
+        str: row.base_str,
+        agi: row.base_agi,
+        vit: row.base_vit,
+        con: row.base_con,
+        int: row.base_int,
       },
       growthRates: {
-        hp: parseFloat(row.growth_hp),
-        atk: parseFloat(row.growth_atk),
-        def: parseFloat(row.growth_def),
-        spd: parseFloat(row.growth_spd),
+        str: parseFloat(row.growth_str),
+        agi: parseFloat(row.growth_agi),
+        vit: parseFloat(row.growth_vit),
+        con: parseFloat(row.growth_con),
+        int: parseFloat(row.growth_int),
       },
       sprites: {
         idle: row.sprite_idle || '',
@@ -146,30 +148,22 @@ export const createPet = async (req: Request, res: Response, next: NextFunction)
     const body: CreateAdminPetRequest = req.body;
     const id = body.id || generateId('pet');
 
-    // Validate element sum
-    const elementSum = body.element.earth + body.element.water + body.element.fire + body.element.wind;
-    if (elementSum !== 100) {
-      return res.status(400).json({
-        success: false,
-        error: { message: 'Element ratios must sum to 100' },
-      });
-    }
-
     const { error } = await supabase.from('admin_pets').insert({
       id,
       name: body.name,
-      element_earth: body.element.earth,
-      element_water: body.element.water,
-      element_fire: body.element.fire,
-      element_wind: body.element.wind,
-      base_hp: body.baseStats.hp,
-      base_atk: body.baseStats.atk,
-      base_def: body.baseStats.def,
-      base_spd: body.baseStats.spd,
-      growth_hp: body.growthRates.hp,
-      growth_atk: body.growthRates.atk,
-      growth_def: body.growthRates.def,
-      growth_spd: body.growthRates.spd,
+      element_primary: body.element.primary,
+      element_secondary: body.element.secondary || null,
+      element_primary_ratio: body.element.primaryRatio,
+      base_str: body.baseStats.str,
+      base_agi: body.baseStats.agi,
+      base_vit: body.baseStats.vit,
+      base_con: body.baseStats.con,
+      base_int: body.baseStats.int,
+      growth_str: body.growthRates.str,
+      growth_agi: body.growthRates.agi,
+      growth_vit: body.growthRates.vit,
+      growth_con: body.growthRates.con,
+      growth_int: body.growthRates.int,
       sprite_idle: body.sprites.idle,
       sprite_attack: body.sprites.attack,
       sprite_hit: body.sprites.hit,
@@ -206,29 +200,23 @@ export const updatePet = async (req: Request, res: Response, next: NextFunction)
 
     if (body.name) updates.name = body.name;
     if (body.element) {
-      const elementSum = body.element.earth + body.element.water + body.element.fire + body.element.wind;
-      if (elementSum !== 100) {
-        return res.status(400).json({
-          success: false,
-          error: { message: 'Element ratios must sum to 100' },
-        });
-      }
-      updates.element_earth = body.element.earth;
-      updates.element_water = body.element.water;
-      updates.element_fire = body.element.fire;
-      updates.element_wind = body.element.wind;
+      updates.element_primary = body.element.primary;
+      updates.element_secondary = body.element.secondary || null;
+      updates.element_primary_ratio = body.element.primaryRatio;
     }
     if (body.baseStats) {
-      updates.base_hp = body.baseStats.hp;
-      updates.base_atk = body.baseStats.atk;
-      updates.base_def = body.baseStats.def;
-      updates.base_spd = body.baseStats.spd;
+      updates.base_str = body.baseStats.str;
+      updates.base_agi = body.baseStats.agi;
+      updates.base_vit = body.baseStats.vit;
+      updates.base_con = body.baseStats.con;
+      updates.base_int = body.baseStats.int;
     }
     if (body.growthRates) {
-      updates.growth_hp = body.growthRates.hp;
-      updates.growth_atk = body.growthRates.atk;
-      updates.growth_def = body.growthRates.def;
-      updates.growth_spd = body.growthRates.spd;
+      updates.growth_str = body.growthRates.str;
+      updates.growth_agi = body.growthRates.agi;
+      updates.growth_vit = body.growthRates.vit;
+      updates.growth_con = body.growthRates.con;
+      updates.growth_int = body.growthRates.int;
     }
     if (body.sprites) {
       updates.sprite_idle = body.sprites.idle;
@@ -628,7 +616,7 @@ export const deleteStage = async (req: Request, res: Response, next: NextFunctio
 };
 
 // =====================================================
-// Shop Item Management
+// Shop Item Management (재화: stone 단일)
 // =====================================================
 
 export const getShopItems = async (req: Request, res: Response, next: NextFunction) => {
@@ -645,7 +633,6 @@ export const getShopItems = async (req: Request, res: Response, next: NextFuncti
       name: row.name,
       category: row.category,
       price: row.price,
-      currency: row.currency,
       icon: row.icon || '',
       description: row.description || '',
       effect: row.effect,
@@ -681,7 +668,6 @@ export const getShopItemById = async (req: Request, res: Response, next: NextFun
       name: row.name,
       category: row.category,
       price: row.price,
-      currency: row.currency,
       icon: row.icon || '',
       description: row.description || '',
       effect: row.effect,
@@ -708,7 +694,6 @@ export const createShopItem = async (req: Request, res: Response, next: NextFunc
       name: body.name,
       category: body.category,
       price: body.price,
-      currency: body.currency || 'gold',
       icon: body.icon || '',
       description: body.description || '',
       effect: body.effect,
@@ -734,7 +719,6 @@ export const updateShopItem = async (req: Request, res: Response, next: NextFunc
     if (body.name !== undefined) updates.name = body.name;
     if (body.category !== undefined) updates.category = body.category;
     if (body.price !== undefined) updates.price = body.price;
-    if (body.currency !== undefined) updates.currency = body.currency;
     if (body.icon !== undefined) updates.icon = body.icon;
     if (body.description !== undefined) updates.description = body.description;
     if (body.effect !== undefined) updates.effect = body.effect;

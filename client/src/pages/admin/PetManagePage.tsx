@@ -1,15 +1,15 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAdminStore } from '../../stores/adminStore';
-import type { AdminPet, AdminPetBaseStats, AdminPetGrowthRates, AdminPetSprites, ElementRatio, SkillComponent } from '../../types/admin';
-import { ELEMENTS, ELEMENT_LABELS, ELEMENT_COLORS } from '../../types/admin';
+import type { AdminPet, AdminPetBaseStats, AdminPetGrowthRates, AdminPetSprites, ElementType } from '../../types/admin';
+import { ELEMENTS, ELEMENT_LABELS, ELEMENT_COLORS, STATS, STAT_LABELS } from '../../types/admin';
 
 const defaultPet: Omit<AdminPet, 'createdAt' | 'updatedAt'> = {
   id: '',
   name: '',
-  element: { earth: 25, water: 25, fire: 25, wind: 25 },
-  baseStats: { hp: 50, atk: 10, def: 10, spd: 10 },
-  growthRates: { hp: 15, atk: 2, def: 2, spd: 2 },
+  element: { primary: 'earth', secondary: null, primaryRatio: 100 },
+  baseStats: { str: 10, agi: 10, vit: 10, con: 10, int: 10 },
+  growthRates: { str: 1.50, agi: 1.50, vit: 1.50, con: 1.50, int: 1.50 },
   sprites: { idle: '', attack: '', hit: '', defend: '', down: '', walk: '' },
   skills: [],
 };
@@ -100,41 +100,26 @@ export default function PetManagePage() {
     }
   };
 
-  // Element slider handler - maintains sum of 100
-  const handleElementChange = (element: keyof ElementRatio, newValue: number) => {
-    const current = formData.element;
-    const others = ELEMENTS.filter((e) => e !== element);
-    const otherSum = others.reduce((sum, e) => sum + current[e], 0);
-    const available = 100 - newValue;
+  // Element handlers
+  const handlePrimaryElementChange = (element: ElementType) => {
+    setFormData({
+      ...formData,
+      element: { ...formData.element, primary: element },
+    });
+  };
 
-    if (otherSum === 0) {
-      // Distribute equally
-      const perElement = Math.floor(available / 3);
-      const remainder = available - perElement * 3;
-      setFormData({
-        ...formData,
-        element: {
-          ...current,
-          [element]: newValue,
-          [others[0]]: perElement + remainder,
-          [others[1]]: perElement,
-          [others[2]]: perElement,
-        },
-      });
-    } else {
-      // Scale proportionally
-      const scale = available / otherSum;
-      const newElement: ElementRatio = { ...current, [element]: newValue };
-      others.forEach((e) => {
-        newElement[e] = Math.round(current[e] * scale);
-      });
-      // Fix rounding errors
-      const total = Object.values(newElement).reduce((a, b) => a + b, 0);
-      if (total !== 100) {
-        newElement[others[0]] += 100 - total;
-      }
-      setFormData({ ...formData, element: newElement });
-    }
+  const handleSecondaryElementChange = (element: ElementType | null) => {
+    setFormData({
+      ...formData,
+      element: { ...formData.element, secondary: element },
+    });
+  };
+
+  const handlePrimaryRatioChange = (ratio: number) => {
+    setFormData({
+      ...formData,
+      element: { ...formData.element, primaryRatio: ratio },
+    });
   };
 
   const handleBaseStatChange = (stat: keyof AdminPetBaseStats, value: number) => {
@@ -165,7 +150,7 @@ export default function PetManagePage() {
     setFormData({ ...formData, skills: newSkills });
   };
 
-  const totalGrowthRate = formData.growthRates.atk + formData.growthRates.def + formData.growthRates.spd;
+  const totalGrowthRate = formData.growthRates.str + formData.growthRates.agi + formData.growthRates.vit + formData.growthRates.con + formData.growthRates.int;
 
   return (
     <div className="p-8">
@@ -297,146 +282,116 @@ export default function PetManagePage() {
                   </div>
                 </div>
 
-                {/* Element Ratios */}
+                {/* Element Config */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-4">속성 비율 (합계 100%)</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    {ELEMENTS.map((element) => (
-                      <div key={element} className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded ${ELEMENT_COLORS[element]} flex items-center justify-center text-white font-bold`}>
-                          {ELEMENT_LABELS[element]}
+                  <label className="block text-sm font-medium text-gray-300 mb-4">속성 설정</label>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">주 속성</label>
+                      <select
+                        value={formData.element.primary}
+                        onChange={(e) => handlePrimaryElementChange(e.target.value as ElementType)}
+                        disabled={!isEditing}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                      >
+                        {ELEMENTS.map((el) => (
+                          <option key={el} value={el}>
+                            {ELEMENT_LABELS[el]} ({el})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">부 속성 (선택)</label>
+                      <select
+                        value={formData.element.secondary || ''}
+                        onChange={(e) => handleSecondaryElementChange(e.target.value ? e.target.value as ElementType : null)}
+                        disabled={!isEditing}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                      >
+                        <option value="">없음</option>
+                        {ELEMENTS.filter((el) => el !== formData.element.primary).map((el) => (
+                          <option key={el} value={el}>
+                            {ELEMENT_LABELS[el]} ({el})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">주 속성 비율 (%)</label>
+                      <input
+                        type="number"
+                        min="50"
+                        max="100"
+                        value={formData.element.primaryRatio}
+                        onChange={(e) => handlePrimaryRatioChange(parseInt(e.target.value) || 100)}
+                        disabled={!isEditing || !formData.element.secondary}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    <div className={`w-6 h-6 rounded ${ELEMENT_COLORS[formData.element.primary]} flex items-center justify-center text-white text-xs font-bold`}>
+                      {ELEMENT_LABELS[formData.element.primary]}
+                    </div>
+                    <span className="text-gray-300 text-sm">{formData.element.primaryRatio}%</span>
+                    {formData.element.secondary && (
+                      <>
+                        <span className="text-gray-500">+</span>
+                        <div className={`w-6 h-6 rounded ${ELEMENT_COLORS[formData.element.secondary]} flex items-center justify-center text-white text-xs font-bold`}>
+                          {ELEMENT_LABELS[formData.element.secondary]}
                         </div>
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={formData.element[element]}
-                          onChange={(e) => handleElementChange(element, parseInt(e.target.value))}
-                          disabled={!isEditing}
-                          className="flex-1"
-                        />
-                        <span className="w-12 text-right text-white">{formData.element[element]}%</span>
-                      </div>
-                    ))}
+                        <span className="text-gray-300 text-sm">{100 - formData.element.primaryRatio}%</span>
+                      </>
+                    )}
                   </div>
                 </div>
 
                 {/* Base Stats */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-4">기본 스텟</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1">체력 (HP) 1-100</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="100"
-                        value={formData.baseStats.hp}
-                        onChange={(e) => handleBaseStatChange('hp', parseInt(e.target.value) || 1)}
-                        disabled={!isEditing}
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1">공격력 (ATK) 1-20</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="20"
-                        value={formData.baseStats.atk}
-                        onChange={(e) => handleBaseStatChange('atk', parseInt(e.target.value) || 1)}
-                        disabled={!isEditing}
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1">방어력 (DEF) 1-20</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="20"
-                        value={formData.baseStats.def}
-                        onChange={(e) => handleBaseStatChange('def', parseInt(e.target.value) || 1)}
-                        disabled={!isEditing}
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1">순발력 (SPD) 1-20</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="20"
-                        value={formData.baseStats.spd}
-                        onChange={(e) => handleBaseStatChange('spd', parseInt(e.target.value) || 1)}
-                        disabled={!isEditing}
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
-                      />
-                    </div>
+                  <label className="block text-sm font-medium text-gray-300 mb-4">기본 스텟 (1-100)</label>
+                  <div className="grid grid-cols-5 gap-3">
+                    {STATS.map((stat) => (
+                      <div key={stat}>
+                        <label className="block text-xs text-gray-400 mb-1">{STAT_LABELS[stat]}</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={formData.baseStats[stat]}
+                          onChange={(e) => handleBaseStatChange(stat, parseInt(e.target.value) || 1)}
+                          disabled={!isEditing}
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
 
                 {/* Growth Rates */}
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <label className="block text-sm font-medium text-gray-300">성장률</label>
-                    <span className={`text-sm ${totalGrowthRate >= 3 && totalGrowthRate <= 9 ? 'text-green-400' : 'text-red-400'}`}>
-                      전체 성장률: {totalGrowthRate.toFixed(2)} (3.00~9.00)
+                    <label className="block text-sm font-medium text-gray-300">성장률 (1.00-3.00)</label>
+                    <span className={`text-sm ${totalGrowthRate >= 5 && totalGrowthRate <= 15 ? 'text-green-400' : 'text-red-400'}`}>
+                      전체 성장률: {totalGrowthRate.toFixed(2)} (5.00~15.00)
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1">HP 성장률 1.00-30.00</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="30"
-                        step="0.1"
-                        value={formData.growthRates.hp}
-                        onChange={(e) => handleGrowthRateChange('hp', parseFloat(e.target.value) || 1)}
-                        disabled={!isEditing}
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1">ATK 성장률 1.00-3.00</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="3"
-                        step="0.1"
-                        value={formData.growthRates.atk}
-                        onChange={(e) => handleGrowthRateChange('atk', parseFloat(e.target.value) || 1)}
-                        disabled={!isEditing}
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1">DEF 성장률 1.00-3.00</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="3"
-                        step="0.1"
-                        value={formData.growthRates.def}
-                        onChange={(e) => handleGrowthRateChange('def', parseFloat(e.target.value) || 1)}
-                        disabled={!isEditing}
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1">SPD 성장률 1.00-3.00</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="3"
-                        step="0.1"
-                        value={formData.growthRates.spd}
-                        onChange={(e) => handleGrowthRateChange('spd', parseFloat(e.target.value) || 1)}
-                        disabled={!isEditing}
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
-                      />
-                    </div>
+                  <div className="grid grid-cols-5 gap-3">
+                    {STATS.map((stat) => (
+                      <div key={stat}>
+                        <label className="block text-xs text-gray-400 mb-1">{STAT_LABELS[stat]}</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="3"
+                          step="0.1"
+                          value={formData.growthRates[stat]}
+                          onChange={(e) => handleGrowthRateChange(stat, parseFloat(e.target.value) || 1)}
+                          disabled={!isEditing}
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
 

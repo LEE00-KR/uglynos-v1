@@ -1,30 +1,33 @@
-// Admin Types based on PRD
+// Admin Types - 기존 스키마 + PRD 혼합
 
 // =====================================================
-// Element Types
+// Element Types (기존 스키마 방식)
 // =====================================================
-export interface ElementRatio {
-  earth: number;  // 0-100
-  water: number;  // 0-100
-  fire: number;   // 0-100
-  wind: number;   // 0-100
+export type ElementType = 'earth' | 'water' | 'fire' | 'wind';
+
+export interface ElementConfig {
+  primary: ElementType;
+  secondary?: ElementType | null;
+  primaryRatio: number;  // 0-100
 }
 
 // =====================================================
 // Pet Types
 // =====================================================
 export interface AdminPetBaseStats {
-  hp: number;   // 1-100
-  atk: number;  // 1-20
-  def: number;  // 1-20
-  spd: number;  // 1-20
+  str: number;  // 1-100
+  agi: number;  // 1-100
+  vit: number;  // 1-100
+  con: number;  // 1-100
+  int: number;  // 1-100
 }
 
 export interface AdminPetGrowthRates {
-  hp: number;   // 1.00-30.00
-  atk: number;  // 1.00-3.00
-  def: number;  // 1.00-3.00
-  spd: number;  // 1.00-3.00
+  str: number;  // 1.00-3.00
+  agi: number;  // 1.00-3.00
+  vit: number;  // 1.00-3.00
+  con: number;  // 1.00-3.00
+  int: number;  // 1.00-3.00
 }
 
 export interface AdminPetSprites {
@@ -39,7 +42,7 @@ export interface AdminPetSprites {
 export interface AdminPet {
   id: string;
   name: string;
-  element: ElementRatio;
+  element: ElementConfig;
   baseStats: AdminPetBaseStats;
   growthRates: AdminPetGrowthRates;
   sprites: AdminPetSprites;
@@ -49,7 +52,7 @@ export interface AdminPet {
 }
 
 // =====================================================
-// Skill Types
+// Skill Types (PRD 방식)
 // =====================================================
 export type SkillComponentType =
   | 'attack'
@@ -86,7 +89,7 @@ export interface AdminSkill {
 }
 
 // =====================================================
-// Stage Group Types
+// Stage Group Types (PRD 방식)
 // =====================================================
 export interface StagePosition {
   stageId: string;
@@ -105,13 +108,14 @@ export interface AdminStageGroup {
 }
 
 // =====================================================
-// Individual Stage Types
+// Individual Stage Types (PRD 방식)
 // =====================================================
 export interface MonsterStats {
-  hp: number;
-  atk: number;
-  def: number;
-  spd: number;
+  str: number;
+  agi: number;
+  vit: number;
+  con: number;
+  int: number;
 }
 
 export interface StageMonster {
@@ -138,10 +142,9 @@ export interface AdminStage {
 }
 
 // =====================================================
-// Shop Item Types
+// Shop Item Types (PRD 방식 + stone 단일 재화)
 // =====================================================
 export type ShopCategory = 'consumable' | 'equipment' | 'material' | 'pet' | 'etc';
-export type Currency = 'gold' | 'cash' | 'point';
 
 export interface ShopEffect {
   type: string;
@@ -156,7 +159,7 @@ export interface AdminShopItem {
   name: string;
   category: ShopCategory;
   price: number;
-  currency: Currency;
+  // currency는 stone 단일이므로 필드 없음
   icon: string;
   description: string;
   effect?: ShopEffect;
@@ -173,7 +176,7 @@ export interface AdminShopItem {
 export interface CreateAdminPetRequest {
   id?: string;
   name: string;
-  element: ElementRatio;
+  element: ElementConfig;
   baseStats: AdminPetBaseStats;
   growthRates: AdminPetGrowthRates;
   sprites: AdminPetSprites;
@@ -215,7 +218,6 @@ export interface CreateAdminShopItemRequest {
   name: string;
   category: ShopCategory;
   price: number;
-  currency?: Currency;
   icon?: string;
   description?: string;
   effect?: ShopEffect;

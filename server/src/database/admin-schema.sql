@@ -1,5 +1,5 @@
 -- Uglynos Admin Schema
--- PRD 기반 어드민 관리용 테이블
+-- 기존 스키마 + PRD 혼합
 
 -- =====================================================
 -- 1. 페트 관리 (admin_pets)
@@ -8,25 +8,26 @@ CREATE TABLE IF NOT EXISTS admin_pets (
   id VARCHAR(50) PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
 
-  -- 속성 비율 (합계 100%)
-  element_earth INTEGER DEFAULT 0 CHECK (element_earth >= 0 AND element_earth <= 100),
-  element_water INTEGER DEFAULT 0 CHECK (element_water >= 0 AND element_water <= 100),
-  element_fire INTEGER DEFAULT 0 CHECK (element_fire >= 0 AND element_fire <= 100),
-  element_wind INTEGER DEFAULT 0 CHECK (element_wind >= 0 AND element_wind <= 100),
+  -- 속성 (기존 스키마 방식)
+  element_primary VARCHAR(20) NOT NULL CHECK (element_primary IN ('earth', 'water', 'fire', 'wind')),
+  element_secondary VARCHAR(20) CHECK (element_secondary IN ('earth', 'water', 'fire', 'wind', NULL)),
+  element_primary_ratio INTEGER DEFAULT 100 CHECK (element_primary_ratio >= 0 AND element_primary_ratio <= 100),
 
-  -- 기본 스텟
-  base_hp INTEGER NOT NULL CHECK (base_hp >= 1 AND base_hp <= 100),
-  base_atk INTEGER NOT NULL CHECK (base_atk >= 1 AND base_atk <= 20),
-  base_def INTEGER NOT NULL CHECK (base_def >= 1 AND base_def <= 20),
-  base_spd INTEGER NOT NULL CHECK (base_spd >= 1 AND base_spd <= 20),
+  -- 기본 스텟 (5스텟 시스템)
+  base_str INTEGER NOT NULL DEFAULT 10 CHECK (base_str >= 1 AND base_str <= 100),
+  base_agi INTEGER NOT NULL DEFAULT 10 CHECK (base_agi >= 1 AND base_agi <= 100),
+  base_vit INTEGER NOT NULL DEFAULT 10 CHECK (base_vit >= 1 AND base_vit <= 100),
+  base_con INTEGER NOT NULL DEFAULT 10 CHECK (base_con >= 1 AND base_con <= 100),
+  base_int INTEGER NOT NULL DEFAULT 10 CHECK (base_int >= 1 AND base_int <= 100),
 
-  -- 성장률
-  growth_hp DECIMAL(5,2) NOT NULL CHECK (growth_hp >= 1.00 AND growth_hp <= 30.00),
-  growth_atk DECIMAL(4,2) NOT NULL CHECK (growth_atk >= 1.00 AND growth_atk <= 3.00),
-  growth_def DECIMAL(4,2) NOT NULL CHECK (growth_def >= 1.00 AND growth_def <= 3.00),
-  growth_spd DECIMAL(4,2) NOT NULL CHECK (growth_spd >= 1.00 AND growth_spd <= 3.00),
+  -- 성장률 (5스텟 시스템)
+  growth_str DECIMAL(4,2) NOT NULL DEFAULT 1.50 CHECK (growth_str >= 1.00 AND growth_str <= 3.00),
+  growth_agi DECIMAL(4,2) NOT NULL DEFAULT 1.50 CHECK (growth_agi >= 1.00 AND growth_agi <= 3.00),
+  growth_vit DECIMAL(4,2) NOT NULL DEFAULT 1.50 CHECK (growth_vit >= 1.00 AND growth_vit <= 3.00),
+  growth_con DECIMAL(4,2) NOT NULL DEFAULT 1.50 CHECK (growth_con >= 1.00 AND growth_con <= 3.00),
+  growth_int DECIMAL(4,2) NOT NULL DEFAULT 1.50 CHECK (growth_int >= 1.00 AND growth_int <= 3.00),
 
-  -- 스프라이트
+  -- 스프라이트 (PRD 방식 - 6종)
   sprite_idle VARCHAR(500),
   sprite_attack VARCHAR(500),
   sprite_hit VARCHAR(500),
@@ -35,11 +36,7 @@ CREATE TABLE IF NOT EXISTS admin_pets (
   sprite_walk VARCHAR(500),
 
   created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW(),
-
-  CONSTRAINT check_element_sum CHECK (
-    element_earth + element_water + element_fire + element_wind = 100
-  )
+  updated_at TIMESTAMP DEFAULT NOW()
 );
 
 -- 페트-스킬 연결 테이블
@@ -55,7 +52,7 @@ CREATE TABLE IF NOT EXISTS admin_pet_skills (
 CREATE INDEX IF NOT EXISTS idx_admin_pet_skills_pet_id ON admin_pet_skills(pet_id);
 
 -- =====================================================
--- 2. 스킬 관리 (admin_skills)
+-- 2. 스킬 관리 (admin_skills) - PRD 방식
 -- =====================================================
 CREATE TABLE IF NOT EXISTS admin_skills (
   id VARCHAR(50) PRIMARY KEY,
@@ -71,7 +68,7 @@ CREATE TABLE IF NOT EXISTS admin_skills (
 );
 
 -- =====================================================
--- 3. 스테이지 단계 관리 (admin_stage_groups)
+-- 3. 스테이지 단계 관리 (admin_stage_groups) - PRD 방식
 -- =====================================================
 CREATE TABLE IF NOT EXISTS admin_stage_groups (
   id VARCHAR(50) PRIMARY KEY,
@@ -87,7 +84,7 @@ CREATE TABLE IF NOT EXISTS admin_stage_groups (
 );
 
 -- =====================================================
--- 4. 개별 스테이지 관리 (admin_stages)
+-- 4. 개별 스테이지 관리 (admin_stages) - PRD 방식
 -- =====================================================
 CREATE TABLE IF NOT EXISTS admin_stages (
   id VARCHAR(50) PRIMARY KEY,
@@ -107,14 +104,14 @@ CREATE TABLE IF NOT EXISTS admin_stages (
 );
 
 -- =====================================================
--- 5. 상점 관리 (admin_shop_items)
+-- 5. 상점 관리 (admin_shop_items) - PRD 방식 + stone 단일 재화
 -- =====================================================
 CREATE TABLE IF NOT EXISTS admin_shop_items (
   id VARCHAR(50) PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   category VARCHAR(20) NOT NULL CHECK (category IN ('consumable', 'equipment', 'material', 'pet', 'etc')),
   price INTEGER NOT NULL CHECK (price >= 0),
-  currency VARCHAR(20) NOT NULL DEFAULT 'gold' CHECK (currency IN ('gold', 'cash', 'point')),
+  -- 재화는 stone 단일
   icon VARCHAR(500),
   description TEXT,
 

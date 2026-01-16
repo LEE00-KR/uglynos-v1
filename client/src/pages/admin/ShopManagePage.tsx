@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAdminStore } from '../../stores/adminStore';
-import type { AdminShopItem, ShopCategory, Currency, ShopEffect } from '../../types/admin';
-import { SHOP_CATEGORIES, CURRENCIES } from '../../types/admin';
+import type { AdminShopItem, ShopCategory, ShopEffect } from '../../types/admin';
+import { SHOP_CATEGORIES } from '../../types/admin';
 
 const defaultShopItem: Omit<AdminShopItem, 'createdAt' | 'updatedAt'> = {
   id: '',
   name: '',
   category: 'consumable',
   price: 100,
-  currency: 'gold',
   icon: '',
   description: '',
   effect: undefined,
@@ -164,10 +163,6 @@ export default function ShopManagePage() {
     return SHOP_CATEGORIES.find((c) => c.value === category)?.label || category;
   };
 
-  const getCurrencyLabel = (currency: Currency) => {
-    return CURRENCIES.find((c) => c.value === currency)?.label || currency;
-  };
-
   const filteredItems = (category: ShopCategory) => {
     return shopItems.filter((item) => item.category === category);
   };
@@ -231,7 +226,7 @@ export default function ShopManagePage() {
                             <div className="flex-1">
                               <p className="text-white font-medium">{item.name}</p>
                               <p className="text-xs text-gray-400">
-                                {item.price.toLocaleString()} {getCurrencyLabel(item.currency)}
+                                {item.price.toLocaleString()} stone
                                 {!item.available && ' (판매 중지)'}
                               </p>
                             </div>
@@ -317,7 +312,7 @@ export default function ShopManagePage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">카테고리</label>
                     <select
@@ -334,7 +329,7 @@ export default function ShopManagePage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">가격</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">가격 (stone)</label>
                     <input
                       type="number"
                       min="0"
@@ -343,21 +338,6 @@ export default function ShopManagePage() {
                       disabled={!isEditing}
                       className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">재화</label>
-                    <select
-                      value={formData.currency}
-                      onChange={(e) => setFormData({ ...formData, currency: e.target.value as Currency })}
-                      disabled={!isEditing}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
-                    >
-                      {CURRENCIES.map((cur) => (
-                        <option key={cur.value} value={cur.value}>
-                          {cur.label}
-                        </option>
-                      ))}
-                    </select>
                   </div>
                 </div>
 
