@@ -61,8 +61,8 @@ export interface AdminPetGrowthRates {
   spd: number;  // 1.00-3.00
 }
 
-// 성장 그룹 타입
-export type GrowthGroup = 'S' | 'A' | 'B' | 'C' | 'D';
+// 성장 그룹 타입 (S++/S+ 추가, 확률 기반)
+export type GrowthGroup = 'S++' | 'S+' | 'S' | 'A' | 'B' | 'C' | 'D';
 
 export interface AdminPetSprites {
   idle: string;

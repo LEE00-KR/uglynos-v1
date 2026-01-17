@@ -233,24 +233,40 @@ describe('formulas', () => {
   });
 
   // =====================================================
-  // 성장 그룹 테스트
+  // 성장 그룹 테스트 (확률 기반)
+  // S++ 0.4%, S+ 1%, S 2%, A 10%, B 50%, C 25%, D 11.6%
   // =====================================================
   describe('calculateGrowthGroup', () => {
-    it('should return S for 95%+ stats', () => {
-      // 기준 MAX_TOTAL_STATS = 1299
-      const stats: BaseStats = { hp: 950, atk: 95, def: 95, spd: 95 }; // 1235 = ~95%
-      expect(calculateGrowthGroup(stats)).toBe('S');
+    it('should return valid growth groups', () => {
+      const validGroups = ['S++', 'S+', 'S', 'A', 'B', 'C', 'D'];
+      for (let i = 0; i < 100; i++) {
+        const group = calculateGrowthGroup();
+        expect(validGroups).toContain(group);
+      }
     });
 
-    it('should return D for low stats', () => {
-      const stats: BaseStats = { hp: 100, atk: 10, def: 10, spd: 10 }; // 130 = ~10%
-      expect(calculateGrowthGroup(stats)).toBe('D');
-    });
+    it('should follow probability distribution approximately', () => {
+      const counts: Record<string, number> = {
+        'S++': 0, 'S+': 0, 'S': 0, 'A': 0, 'B': 0, 'C': 0, 'D': 0,
+      };
+      const iterations = 10000;
 
-    it('should use custom max stats when provided', () => {
-      const stats: BaseStats = { hp: 100, atk: 10, def: 10, spd: 10 }; // 130
-      // 130 / 130 = 100% → S
-      expect(calculateGrowthGroup(stats, 130)).toBe('S');
+      for (let i = 0; i < iterations; i++) {
+        const group = calculateGrowthGroup();
+        counts[group]++;
+      }
+
+      // B등급이 가장 많아야 함 (50%)
+      expect(counts['B']).toBeGreaterThan(counts['A']);
+      expect(counts['B']).toBeGreaterThan(counts['C']);
+      expect(counts['B']).toBeGreaterThan(counts['D']);
+
+      // C등급이 두 번째로 많아야 함 (25%)
+      expect(counts['C']).toBeGreaterThan(counts['A']);
+
+      // S++가 가장 적어야 함 (0.4%)
+      expect(counts['S++']).toBeLessThan(counts['S+']);
+      expect(counts['S++']).toBeLessThan(counts['S']);
     });
   });
 

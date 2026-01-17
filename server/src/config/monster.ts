@@ -3,14 +3,17 @@
  */
 
 // ============================================
-// 성장 그룹 설정
+// 성장 그룹 설정 (확률 기반)
+// 100마리 포획 시: S++=0.4, S+=1, S=2, A=10, B=50, C=25, D=11.6
 // ============================================
 export const GROWTH_GROUPS = {
-  S: { ratioMin: 95, ratioMax: 100, multiplier: 1.0, stars: 3, color: '#FFD700' },
-  A: { ratioMin: 85, ratioMax: 94, multiplier: 0.9, stars: 2, color: '#C0C0C0' },
-  B: { ratioMin: 70, ratioMax: 84, multiplier: 0.8, stars: 1, color: '#CD7F32' },
-  C: { ratioMin: 50, ratioMax: 69, multiplier: 0.7, stars: 0, color: '#808080' },
-  D: { ratioMin: 0, ratioMax: 49, multiplier: 0.6, stars: 0, color: '#404040' },
+  'S++': { probability: 0.4, multiplier: 1.1, stars: 5, color: '#FF00FF', label: '전설' },
+  'S+':  { probability: 1.0, multiplier: 1.05, stars: 4, color: '#FF4500', label: '영웅' },
+  'S':   { probability: 2.0, multiplier: 1.0, stars: 3, color: '#FFD700', label: '최상' },
+  'A':   { probability: 10.0, multiplier: 0.95, stars: 2, color: '#C0C0C0', label: '상' },
+  'B':   { probability: 50.0, multiplier: 0.9, stars: 1, color: '#CD7F32', label: '중' },
+  'C':   { probability: 25.0, multiplier: 0.85, stars: 0, color: '#808080', label: '하' },
+  'D':   { probability: 11.6, multiplier: 0.8, stars: 0, color: '#404040', label: '최하' },
 } as const;
 
 export type GrowthGroup = keyof typeof GROWTH_GROUPS;

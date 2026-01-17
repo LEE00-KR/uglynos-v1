@@ -61,15 +61,15 @@ export interface AdminPetGrowthRates {
   spd: number;  // 1.00-3.00
 }
 
-// 성장 그룹 타입
-export type GrowthGroup = 'S' | 'A' | 'B' | 'C' | 'D';
+// 성장 그룹 타입 (S++/S+ 추가, 확률 기반)
+export type GrowthGroup = 'S++' | 'S+' | 'S' | 'A' | 'B' | 'C' | 'D';
 
-// 총합 스탯 기반 성장 그룹 결정
+// 확률 기반 성장 그룹 결정
 export interface GrowthGroupConfig {
   group: GrowthGroup;
-  minPercent: number;  // 최소 백분율 (총합 기준)
-  maxPercent: number;  // 최대 백분율 (총합 기준)
-  multiplier: number;  // 성장률 배수
+  probability: number;  // 확률 (%)
+  multiplier: number;   // 성장률 배수
+  label: string;        // 표시명
 }
 
 export interface AdminPetSprites {
@@ -316,49 +316,44 @@ export const STAT_LABELS: Record<string, string> = {
   spd: 'SPD (순발력)',
 };
 
-// 성장 그룹 설정 (총합 스탯 백분율 기준)
-// 최대 총합 = HP(999) + ATK(100) + DEF(100) + SPD(100) = 1299
-export const MAX_TOTAL_STATS = 1299;
+// 성장 그룹 설정 (확률 기반)
+// 100마리 포획 시: S++=0.4마리, S+=1마리, S=2마리, A=10마리, B=50마리, C=25마리, D=11.6마리
+export const MAX_TOTAL_STATS = 1299;  // 레거시 호환
 
 export const GROWTH_GROUPS: GrowthGroupConfig[] = [
-  { group: 'S', minPercent: 95, maxPercent: 100, multiplier: 1.0 },
-  { group: 'A', minPercent: 85, maxPercent: 94, multiplier: 0.9 },
-  { group: 'B', minPercent: 70, maxPercent: 84, multiplier: 0.8 },
-  { group: 'C', minPercent: 50, maxPercent: 69, multiplier: 0.7 },
-  { group: 'D', minPercent: 0, maxPercent: 49, multiplier: 0.6 },
+  { group: 'S++', probability: 0.4, multiplier: 1.1, label: '전설' },   // 0.4% (1/250)
+  { group: 'S+', probability: 1.0, multiplier: 1.05, label: '영웅' },   // 1% (1/100)
+  { group: 'S', probability: 2.0, multiplier: 1.0, label: '최상' },     // 2%
+  { group: 'A', probability: 10.0, multiplier: 0.95, label: '상' },     // 10%
+  { group: 'B', probability: 50.0, multiplier: 0.9, label: '중' },      // 50% (가장 흔함)
+  { group: 'C', probability: 25.0, multiplier: 0.85, label: '하' },     // 25%
+  { group: 'D', probability: 11.6, multiplier: 0.8, label: '최하' },    // 11.6%
 ];
 
 export const GROWTH_GROUP_LABELS: Record<GrowthGroup, string> = {
-  S: 'S등급 (95-100%)',
-  A: 'A등급 (85-94%)',
-  B: 'B등급 (70-84%)',
-  C: 'C등급 (50-69%)',
-  D: 'D등급 (0-49%)',
+  'S++': 'S++ (전설, 0.4%)',
+  'S+': 'S+ (영웅, 1%)',
+  'S': 'S (최상, 2%)',
+  'A': 'A (상, 10%)',
+  'B': 'B (중, 50%)',
+  'C': 'C (하, 25%)',
+  'D': 'D (최하, 11.6%)',
 };
 
 export const GROWTH_GROUP_COLORS: Record<GrowthGroup, string> = {
-  S: 'bg-yellow-500',
-  A: 'bg-purple-500',
-  B: 'bg-blue-500',
-  C: 'bg-green-500',
-  D: 'bg-gray-500',
-};
-
-// 총합 스탯으로 성장 그룹 계산
-export const calculateGrowthGroup = (totalStats: number): GrowthGroup => {
-  const percent = (totalStats / MAX_TOTAL_STATS) * 100;
-  for (const config of GROWTH_GROUPS) {
-    if (percent >= config.minPercent && percent <= config.maxPercent) {
-      return config.group;
-    }
-  }
-  return 'D';
+  'S++': 'bg-fuchsia-500',   // 전설 - 보라/핑크
+  'S+': 'bg-orange-500',     // 영웅 - 주황
+  'S': 'bg-yellow-500',      // 최상 - 금색
+  'A': 'bg-purple-500',      // 상 - 은색/보라
+  'B': 'bg-blue-500',        // 중 - 파랑
+  'C': 'bg-green-500',       // 하 - 초록
+  'D': 'bg-gray-500',        // 최하 - 회색
 };
 
 // 성장 그룹 배수 가져오기
 export const getGrowthMultiplier = (group: GrowthGroup): number => {
   const config = GROWTH_GROUPS.find(g => g.group === group);
-  return config?.multiplier ?? 0.6;
+  return config?.multiplier ?? 0.9;
 };
 
 // 별 조건 3 타입

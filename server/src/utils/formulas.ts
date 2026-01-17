@@ -380,38 +380,60 @@ export const generateRandomGrowthRates = (
 };
 
 // =====================================================
-// 성장 그룹 계산
-// 총합 스탯 기반
+// 성장 그룹 계산 (확률 기반)
+// S++/S+ 추가, 정규분포 확률
 // =====================================================
-export type GrowthGroup = 'S' | 'A' | 'B' | 'C' | 'D';
+export type GrowthGroup = 'S++' | 'S+' | 'S' | 'A' | 'B' | 'C' | 'D';
 
-export const GROWTH_GROUP_CONFIG = {
-  S: { minPercent: 95, maxPercent: 100, multiplier: 1.0 },
-  A: { minPercent: 85, maxPercent: 94, multiplier: 0.9 },
-  B: { minPercent: 70, maxPercent: 84, multiplier: 0.8 },
-  C: { minPercent: 50, maxPercent: 69, multiplier: 0.7 },
-  D: { minPercent: 0, maxPercent: 49, multiplier: 0.6 },
+// 성장 그룹 설정 (확률 기반)
+// 100마리 포획 시: S++=0.4마리, S+=1마리, S=2마리, A=10마리, B=50마리, C=25마리, D=11.6마리
+export const GROWTH_GROUP_CONFIG: Record<GrowthGroup, {
+  probability: number;  // 확률 (%)
+  multiplier: number;   // 성장 배수
+  label: string;        // 표시명
+  color: string;        // 색상
+}> = {
+  'S++': { probability: 0.4, multiplier: 1.1, label: '전설', color: '#FF00FF' },   // 0.4% (1/250)
+  'S+':  { probability: 1.0, multiplier: 1.05, label: '영웅', color: '#FF4500' },  // 1% (1/100)
+  'S':   { probability: 2.0, multiplier: 1.0, label: '최상', color: '#FFD700' },   // 2%
+  'A':   { probability: 10.0, multiplier: 0.95, label: '상', color: '#C0C0C0' },   // 10%
+  'B':   { probability: 50.0, multiplier: 0.9, label: '중', color: '#CD7F32' },    // 50% (가장 흔함)
+  'C':   { probability: 25.0, multiplier: 0.85, label: '하', color: '#808080' },   // 25%
+  'D':   { probability: 11.6, multiplier: 0.8, label: '최하', color: '#404040' },  // 11.6%
 } as const;
 
-// 최대 총합 스탯 (기준점)
+// 성장 그룹 순서 (확률 누적 계산용)
+export const GROWTH_GROUP_ORDER: GrowthGroup[] = ['S++', 'S+', 'S', 'A', 'B', 'C', 'D'];
+
+// 최대 총합 스탯 (기준점 - 레거시 호환)
 export const MAX_TOTAL_STATS = 1299;  // HP(999) + ATK(100) + DEF(100) + SPD(100)
 
+/**
+ * 성장 그룹 결정 (확률 기반)
+ * 랜덤 확률로 등급 결정
+ */
 export const calculateGrowthGroup = (
-  stats: BaseStats,
-  maxPossibleStats: number = MAX_TOTAL_STATS
+  _stats?: BaseStats,
+  _maxPossibleStats?: number
 ): GrowthGroup => {
-  const totalStats = stats.hp + stats.atk + stats.def + stats.spd;
-  const percent = (totalStats / maxPossibleStats) * 100;
+  const roll = Math.random() * 100;  // 0-100
+  let cumulative = 0;
 
-  if (percent >= 95) return 'S';
-  if (percent >= 85) return 'A';
-  if (percent >= 70) return 'B';
-  if (percent >= 50) return 'C';
-  return 'D';
+  for (const group of GROWTH_GROUP_ORDER) {
+    cumulative += GROWTH_GROUP_CONFIG[group].probability;
+    if (roll < cumulative) {
+      return group;
+    }
+  }
+
+  return 'D';  // 기본값
 };
 
+/**
+ * 성장 그룹 배수 반환
+ */
 export const getGrowthMultiplier = (group: GrowthGroup): number => {
-  return GROWTH_GROUP_CONFIG[group].multiplier;
+  return GROWTH_GROUP_CONFIG[group]?.multiplier ?? 0.9;
 };
 
 // =====================================================
