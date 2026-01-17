@@ -15,9 +15,10 @@ export interface ElementConfig {
 // Pet Types (4스텟: 체력, 공격력, 방어력, 순발력)
 // =====================================================
 
-// 스탯 범위 (min ~ max)
+// 스탯 범위 (min / base / max)
 export interface StatRange {
   min: number;
+  base: number;
   max: number;
 }
 
@@ -29,20 +30,14 @@ export interface AdminPetBaseStatsRange {
   spd: StatRange;  // 순발력 범위 (1-100)
 }
 
-// 보너스 풀 (Species 템플릿용)
-export interface AdminPetBonusPool {
-  hp: number;   // HP 보너스 풀 (0-50)
-  atk: number;  // ATK 보너스 풀 (0-10)
-  def: number;  // DEF 보너스 풀 (0-10)
-  spd: number;  // SPD 보너스 풀 (0-10)
-}
+// 보너스 풀 (Species 템플릿용) - 제거됨, base/min/max로 대체
 
 // 성장률 범위 (Species 템플릿용)
 export interface AdminPetGrowthRatesRange {
-  hp: StatRange;   // 1.00-3.00
-  atk: StatRange;  // 1.00-3.00
-  def: StatRange;  // 1.00-3.00
-  spd: StatRange;  // 1.00-3.00
+  hp: StatRange;   // HP 성장률 범위
+  atk: StatRange;  // ATK 성장률 범위
+  def: StatRange;  // DEF 성장률 범위
+  spd: StatRange;  // SPD 성장률 범위
 }
 
 // 고정 스탯 (레거시 호환용)
@@ -67,9 +62,11 @@ export type GrowthGroup = 'S++' | 'S+' | 'S' | 'A' | 'B' | 'C' | 'D';
 // 확률 기반 성장 그룹 결정
 export interface GrowthGroupConfig {
   group: GrowthGroup;
-  probability: number;  // 확률 (%)
-  multiplier: number;   // 성장률 배수
-  label: string;        // 표시명
+  probability: number;     // 확률 (%)
+  multiplier: number;      // 기준 배수
+  multiplierMin: number;   // 최소 배수
+  multiplierMax: number;   // 최대 배수
+  label: string;           // 표시명
 }
 
 export interface AdminPetSprites {
@@ -85,12 +82,9 @@ export interface AdminPet {
   id: string;
   name: string;
   element: ElementConfig;
-  // Species 템플릿 (범위 기반)
+  // Species 템플릿 (min/base/max 기반)
   baseStatsRange: AdminPetBaseStatsRange;
-  bonusPool: AdminPetBonusPool;
   growthRatesRange: AdminPetGrowthRatesRange;
-  // 총합 스탯 (자동 계산용)
-  totalStats: number;
   // 스프라이트
   sprites: AdminPetSprites;
   skills: string[];
@@ -290,16 +284,16 @@ export const SHOP_TYPES: { value: ShopType; label: string }[] = [
 
 export const ELEMENTS: ElementType[] = ['earth', 'water', 'fire', 'wind'];
 export const ELEMENT_LABELS: Record<ElementType, string> = {
-  earth: '地',
-  water: '水',
-  fire: '火',
-  wind: '風',
+  earth: '지(地)',
+  water: '수(水)',
+  fire: '화(火)',
+  wind: '풍(風)',
 };
 export const ELEMENT_LABELS_KR: Record<ElementType, string> = {
-  earth: '지',
-  water: '수',
-  fire: '화',
-  wind: '풍',
+  earth: '지(地)',
+  water: '수(水)',
+  fire: '화(火)',
+  wind: '풍(風)',
 };
 export const ELEMENT_COLORS: Record<ElementType, string> = {
   earth: 'bg-green-500',   // 지 = 초록
@@ -316,18 +310,18 @@ export const STAT_LABELS: Record<string, string> = {
   spd: 'SPD (순발력)',
 };
 
-// 성장 그룹 설정 (확률 기반)
+// 성장 그룹 설정 (확률 기반 + 범위)
 // 100마리 포획 시: S++=0.4마리, S+=1마리, S=2마리, A=10마리, B=50마리, C=25마리, D=11.6마리
-export const MAX_TOTAL_STATS = 1299;  // 레거시 호환
+// 각 그룹 내에서 배수 범위가 있어 무작위 성장계수 적용
 
 export const GROWTH_GROUPS: GrowthGroupConfig[] = [
-  { group: 'S++', probability: 0.4, multiplier: 1.1, label: '전설' },   // 0.4% (1/250)
-  { group: 'S+', probability: 1.0, multiplier: 1.05, label: '영웅' },   // 1% (1/100)
-  { group: 'S', probability: 2.0, multiplier: 1.0, label: '최상' },     // 2%
-  { group: 'A', probability: 10.0, multiplier: 0.95, label: '상' },     // 10%
-  { group: 'B', probability: 50.0, multiplier: 0.9, label: '중' },      // 50% (가장 흔함)
-  { group: 'C', probability: 25.0, multiplier: 0.85, label: '하' },     // 25%
-  { group: 'D', probability: 11.6, multiplier: 0.8, label: '최하' },    // 11.6%
+  { group: 'S++', probability: 0.4, multiplier: 1.10, multiplierMin: 1.08, multiplierMax: 1.12, label: '전설' },
+  { group: 'S+',  probability: 1.0, multiplier: 1.05, multiplierMin: 1.03, multiplierMax: 1.07, label: '영웅' },
+  { group: 'S',   probability: 2.0, multiplier: 1.00, multiplierMin: 0.98, multiplierMax: 1.02, label: '최상' },
+  { group: 'A',   probability: 10.0, multiplier: 0.95, multiplierMin: 0.93, multiplierMax: 0.97, label: '상' },
+  { group: 'B',   probability: 50.0, multiplier: 0.90, multiplierMin: 0.88, multiplierMax: 0.92, label: '중' },
+  { group: 'C',   probability: 25.0, multiplier: 0.85, multiplierMin: 0.83, multiplierMax: 0.87, label: '하' },
+  { group: 'D',   probability: 11.6, multiplier: 0.80, multiplierMin: 0.78, multiplierMax: 0.82, label: '최하' },
 ];
 
 export const GROWTH_GROUP_LABELS: Record<GrowthGroup, string> = {

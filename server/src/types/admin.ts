@@ -61,8 +61,15 @@ export interface AdminPetGrowthRates {
   spd: number;  // 1.00-3.00
 }
 
-// 성장 그룹 타입 (S++/S+ 추가, 확률 기반)
+// 성장 그룹 타입 (S++/S+ 추가, 확률 기반 + 범위)
 export type GrowthGroup = 'S++' | 'S+' | 'S' | 'A' | 'B' | 'C' | 'D';
+
+// 스탯 범위 (min / base / max)
+export interface StatRange {
+  min: number;
+  base: number;
+  max: number;
+}
 
 export interface AdminPetSprites {
   idle: string;
