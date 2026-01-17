@@ -281,10 +281,11 @@ export const calculateCatchRate = (
 
 // =====================================================
 // 랜덤 펫 스탯 생성 (4스탯)
-// 템플릿의 범위 내에서 랜덤 생성
+// 템플릿의 min/base/max 범위 내에서 랜덤 생성
 // =====================================================
 export interface StatRange {
   min: number;
+  base: number;
   max: number;
 }
 
@@ -295,6 +296,7 @@ export interface PetStatsRange {
   spd: StatRange;
 }
 
+// 레거시 호환 - bonusPool 제거됨
 export interface PetBonusPool {
   hp: number;
   atk: number;
@@ -304,42 +306,32 @@ export interface PetBonusPool {
 
 export const generateRandomPetStats = (
   baseStatsRange: PetStatsRange,
-  bonusPool: PetBonusPool
+  _bonusPool?: PetBonusPool  // 레거시 호환, 더 이상 사용하지 않음
 ): BaseStats => {
-  // 기본 스탯 랜덤 생성
-  const baseHp = Math.floor(
+  // min과 max 범위 내에서 랜덤 생성
+  const hp = Math.floor(
     Math.random() * (baseStatsRange.hp.max - baseStatsRange.hp.min + 1) +
       baseStatsRange.hp.min
   );
-  const baseAtk = Math.floor(
+  const atk = Math.floor(
     Math.random() * (baseStatsRange.atk.max - baseStatsRange.atk.min + 1) +
       baseStatsRange.atk.min
   );
-  const baseDef = Math.floor(
+  const def = Math.floor(
     Math.random() * (baseStatsRange.def.max - baseStatsRange.def.min + 1) +
       baseStatsRange.def.min
   );
-  const baseSpd = Math.floor(
+  const spd = Math.floor(
     Math.random() * (baseStatsRange.spd.max - baseStatsRange.spd.min + 1) +
       baseStatsRange.spd.min
   );
 
-  // 보너스 풀에서 랜덤 분배
-  const bonusHp = Math.floor(Math.random() * (bonusPool.hp + 1));
-  const bonusAtk = Math.floor(Math.random() * (bonusPool.atk + 1));
-  const bonusDef = Math.floor(Math.random() * (bonusPool.def + 1));
-  const bonusSpd = Math.floor(Math.random() * (bonusPool.spd + 1));
-
-  return {
-    hp: baseHp + bonusHp,
-    atk: baseAtk + bonusAtk,
-    def: baseDef + bonusDef,
-    spd: baseSpd + bonusSpd,
-  };
+  return { hp, atk, def, spd };
 };
 
 // =====================================================
 // 랜덤 성장률 생성 (4스탯)
+// min/base/max 구조, min~max 범위 내에서 랜덤 생성
 // =====================================================
 export interface GrowthRatesRange {
   hp: StatRange;
@@ -385,21 +377,24 @@ export const generateRandomGrowthRates = (
 // =====================================================
 export type GrowthGroup = 'S++' | 'S+' | 'S' | 'A' | 'B' | 'C' | 'D';
 
-// 성장 그룹 설정 (확률 기반)
+// 성장 그룹 설정 (확률 기반 + 범위)
 // 100마리 포획 시: S++=0.4마리, S+=1마리, S=2마리, A=10마리, B=50마리, C=25마리, D=11.6마리
+// 각 그룹 내에서 배수 범위가 있어 무작위 성장계수 적용
 export const GROWTH_GROUP_CONFIG: Record<GrowthGroup, {
-  probability: number;  // 확률 (%)
-  multiplier: number;   // 성장 배수
-  label: string;        // 표시명
-  color: string;        // 색상
+  probability: number;     // 확률 (%)
+  multiplier: number;      // 기준 배수
+  multiplierMin: number;   // 최소 배수
+  multiplierMax: number;   // 최대 배수
+  label: string;           // 표시명
+  color: string;           // 색상
 }> = {
-  'S++': { probability: 0.4, multiplier: 1.1, label: '전설', color: '#FF00FF' },   // 0.4% (1/250)
-  'S+':  { probability: 1.0, multiplier: 1.05, label: '영웅', color: '#FF4500' },  // 1% (1/100)
-  'S':   { probability: 2.0, multiplier: 1.0, label: '최상', color: '#FFD700' },   // 2%
-  'A':   { probability: 10.0, multiplier: 0.95, label: '상', color: '#C0C0C0' },   // 10%
-  'B':   { probability: 50.0, multiplier: 0.9, label: '중', color: '#CD7F32' },    // 50% (가장 흔함)
-  'C':   { probability: 25.0, multiplier: 0.85, label: '하', color: '#808080' },   // 25%
-  'D':   { probability: 11.6, multiplier: 0.8, label: '최하', color: '#404040' },  // 11.6%
+  'S++': { probability: 0.4, multiplier: 1.10, multiplierMin: 1.08, multiplierMax: 1.12, label: '전설', color: '#FF00FF' },
+  'S+':  { probability: 1.0, multiplier: 1.05, multiplierMin: 1.03, multiplierMax: 1.07, label: '영웅', color: '#FF4500' },
+  'S':   { probability: 2.0, multiplier: 1.00, multiplierMin: 0.98, multiplierMax: 1.02, label: '최상', color: '#FFD700' },
+  'A':   { probability: 10.0, multiplier: 0.95, multiplierMin: 0.93, multiplierMax: 0.97, label: '상', color: '#C0C0C0' },
+  'B':   { probability: 50.0, multiplier: 0.90, multiplierMin: 0.88, multiplierMax: 0.92, label: '중', color: '#CD7F32' },
+  'C':   { probability: 25.0, multiplier: 0.85, multiplierMin: 0.83, multiplierMax: 0.87, label: '하', color: '#808080' },
+  'D':   { probability: 11.6, multiplier: 0.80, multiplierMin: 0.78, multiplierMax: 0.82, label: '최하', color: '#404040' },
 } as const;
 
 // 성장 그룹 순서 (확률 누적 계산용)
@@ -430,10 +425,20 @@ export const calculateGrowthGroup = (
 };
 
 /**
- * 성장 그룹 배수 반환
+ * 성장 그룹 배수 반환 (기준값)
  */
 export const getGrowthMultiplier = (group: GrowthGroup): number => {
   return GROWTH_GROUP_CONFIG[group]?.multiplier ?? 0.9;
+};
+
+/**
+ * 성장 그룹 범위 내 랜덤 배수 반환
+ * 펫 생성 시 사용 - 각 그룹 내에서도 개체차 발생
+ */
+export const getRandomGrowthMultiplier = (group: GrowthGroup): number => {
+  const config = GROWTH_GROUP_CONFIG[group];
+  if (!config) return 0.9;
+  return config.multiplierMin + Math.random() * (config.multiplierMax - config.multiplierMin);
 };
 
 // =====================================================
