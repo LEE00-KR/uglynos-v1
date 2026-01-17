@@ -404,10 +404,10 @@ class BattleService {
               isRareColor: target.isRareColor || false,
             };
 
-            // Save captured pet to DB (4스탯)
+            // Save captured pet to DB (4스탯) - ISG 기반 성장 시스템
             const characterId = battleState.participants[0];
             const petData = captureManager.createCapturedPet(target, characterId);
-            const { error: insertError } = await supabase.from('pets').insert({
+            const { error: insertError } = await supabase.from('user_pets').insert({
               template_id: petData.templateId,
               character_id: petData.characterId,
               nickname: petData.nickname,
@@ -421,7 +421,8 @@ class BattleService {
               growth_atk: petData.growth_atk,
               growth_def: petData.growth_def,
               growth_spd: petData.growth_spd,
-              growth_group: petData.growthGroup,
+              growth_group: petData.growthInfo.baseGroup,  // 레거시 호환
+              growth_info: petData.growthInfo,  // ISG 기반 스탯별 성장 정보
               loyalty: petData.loyalty,
               is_rare_color: petData.isRareColor,
               is_starter: false,
