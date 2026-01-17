@@ -34,9 +34,9 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Body parser
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+// Body parser (50mb for base64 sprite images)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Logging
 if (env.NODE_ENV !== 'test') {
