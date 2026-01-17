@@ -12,13 +12,22 @@ const formatNumber = (value: number | undefined | null): string => {
   return Number(value.toFixed(2)).toString();
 };
 
-// 성장 그룹별 배수 (포획 시 랜덤 부여)
+// 성장 그룹별 배수 (포획 시 정규분포 랜덤 부여, 80~100%)
 const GROWTH_GROUP_MULTIPLIERS: Record<GrowthGroup, number> = {
-  S: 1.0,
-  A: 0.9,
-  B: 0.8,
-  C: 0.7,
-  D: 0.6,
+  S: 1.0,   // 100%
+  A: 0.95,  // 95%
+  B: 0.9,   // 90%
+  C: 0.85,  // 85%
+  D: 0.8,   // 80%
+};
+
+// 정규분포 확률 (B가 가장 흔함)
+const GROWTH_GROUP_PROBABILITIES: Record<GrowthGroup, number> = {
+  S: 5,    // 5%
+  A: 20,   // 20%
+  B: 50,   // 50%
+  C: 20,   // 20%
+  D: 5,    // 5%
 };
 
 const GROWTH_GROUP_COLORS: Record<GrowthGroup, string> = {
@@ -460,24 +469,26 @@ export default function PetManagePage() {
                 {/* Growth Group Preview - 등급별 실제 성장률 */}
                 <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
                   <div className="text-sm font-medium text-gray-300 mb-3">
-                    성장 그룹 미리보기 <span className="text-gray-500 font-normal">(포획 시 랜덤 부여)</span>
+                    성장 그룹 미리보기 <span className="text-gray-500 font-normal">(포획 시 정규분포 랜덤)</span>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-gray-400 border-b border-gray-600">
-                          <th className="text-left py-2 pr-4">등급</th>
+                          <th className="text-left py-2 pr-2">등급</th>
+                          <th className="text-center py-2 px-2">확률</th>
                           <th className="text-center py-2 px-2">배수</th>
-                          <th className="text-center py-2 px-2">HP</th>
-                          <th className="text-center py-2 px-2">ATK</th>
+                          <th className="text-center py-2 px-2 border-l border-gray-600">내구도 (HP)</th>
+                          <th className="text-center py-2 px-2 border-l border-gray-600">ATK</th>
                           <th className="text-center py-2 px-2">DEF</th>
                           <th className="text-center py-2 px-2">SPD</th>
-                          <th className="text-center py-2 pl-2">총합 (HP제외)</th>
+                          <th className="text-center py-2 pl-2">능력치 총합</th>
                         </tr>
                       </thead>
                       <tbody>
                         {GROWTH_GROUPS_LIST.map((group) => {
                           const mult = GROWTH_GROUP_MULTIPLIERS[group];
+                          const prob = GROWTH_GROUP_PROBABILITIES[group];
                           const effectiveRates = {
                             hp: { min: formData.growthRatesRange.hp.min * mult, max: formData.growthRatesRange.hp.max * mult },
                             atk: { min: formData.growthRatesRange.atk.min * mult, max: formData.growthRatesRange.atk.max * mult },
@@ -488,12 +499,13 @@ export default function PetManagePage() {
                           const totalMax = effectiveRates.atk.max + effectiveRates.def.max + effectiveRates.spd.max;
                           return (
                             <tr key={group} className="border-b border-gray-700 last:border-b-0">
-                              <td className={`py-2 pr-4 font-bold ${GROWTH_GROUP_COLORS[group]}`}>{group}등급</td>
+                              <td className={`py-2 pr-2 font-bold ${GROWTH_GROUP_COLORS[group]}`}>{group}등급</td>
+                              <td className="text-center py-2 px-2 text-gray-400">{prob}%</td>
                               <td className="text-center py-2 px-2 text-gray-400">×{mult}</td>
-                              <td className="text-center py-2 px-2 text-gray-300">
+                              <td className="text-center py-2 px-2 text-orange-300 border-l border-gray-600">
                                 {formatNumber(effectiveRates.hp.min)}~{formatNumber(effectiveRates.hp.max)}
                               </td>
-                              <td className="text-center py-2 px-2 text-gray-300">
+                              <td className="text-center py-2 px-2 text-gray-300 border-l border-gray-600">
                                 {formatNumber(effectiveRates.atk.min)}~{formatNumber(effectiveRates.atk.max)}
                               </td>
                               <td className="text-center py-2 px-2 text-gray-300">
@@ -502,7 +514,7 @@ export default function PetManagePage() {
                               <td className="text-center py-2 px-2 text-gray-300">
                                 {formatNumber(effectiveRates.spd.min)}~{formatNumber(effectiveRates.spd.max)}
                               </td>
-                              <td className="text-center py-2 pl-2 text-gray-300">
+                              <td className="text-center py-2 pl-2 text-cyan-300 font-medium">
                                 {formatNumber(totalMin)}~{formatNumber(totalMax)}
                               </td>
                             </tr>
@@ -512,7 +524,7 @@ export default function PetManagePage() {
                     </table>
                   </div>
                   <p className="mt-3 text-xs text-gray-500">
-                    * 포획 시 S~D 등급 중 하나가 랜덤 부여되며, 레벨업 시 성장률 × 배수만큼 스탯 증가
+                    * 정규분포: B등급이 가장 흔하고, S/D등급은 희귀 (레벨업 시 성장률 × 배수만큼 스탯 증가)
                   </p>
                 </div>
 

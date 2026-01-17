@@ -380,34 +380,40 @@ export const generateRandomGrowthRates = (
 };
 
 // =====================================================
-// 성장 그룹 계산
-// 총합 스탯 기반
+// 성장 그룹 (정규분포 랜덤, 80~100%)
 // =====================================================
 export type GrowthGroup = 'S' | 'A' | 'B' | 'C' | 'D';
 
+// 성장 그룹별 배수와 확률 (정규분포)
 export const GROWTH_GROUP_CONFIG = {
-  S: { minPercent: 95, maxPercent: 100, multiplier: 1.0 },
-  A: { minPercent: 85, maxPercent: 94, multiplier: 0.9 },
-  B: { minPercent: 70, maxPercent: 84, multiplier: 0.8 },
-  C: { minPercent: 50, maxPercent: 69, multiplier: 0.7 },
-  D: { minPercent: 0, maxPercent: 49, multiplier: 0.6 },
+  S: { multiplier: 1.0, probability: 5 },   // 100%, 5%
+  A: { multiplier: 0.95, probability: 20 }, // 95%, 20%
+  B: { multiplier: 0.9, probability: 50 },  // 90%, 50%
+  C: { multiplier: 0.85, probability: 20 }, // 85%, 20%
+  D: { multiplier: 0.8, probability: 5 },   // 80%, 5%
 } as const;
 
-// 최대 총합 스탯 (기준점)
-export const MAX_TOTAL_STATS = 1299;  // HP(999) + ATK(100) + DEF(100) + SPD(100)
+// 정규분포 기반 성장 그룹 랜덤 선택
+export const rollGrowthGroup = (): GrowthGroup => {
+  const roll = Math.random() * 100;
+  let cumulative = 0;
+  for (const [group, config] of Object.entries(GROWTH_GROUP_CONFIG)) {
+    cumulative += config.probability;
+    if (roll < cumulative) {
+      return group as GrowthGroup;
+    }
+  }
+  return 'B'; // fallback (가장 흔한 등급)
+};
 
+// 레거시 호환: 스탯 기반 성장 그룹 계산 (사용 안 함, rollGrowthGroup 사용 권장)
+export const MAX_TOTAL_STATS = 1299;
 export const calculateGrowthGroup = (
-  stats: BaseStats,
-  maxPossibleStats: number = MAX_TOTAL_STATS
+  _stats: BaseStats,
+  _maxPossibleStats: number = MAX_TOTAL_STATS
 ): GrowthGroup => {
-  const totalStats = stats.hp + stats.atk + stats.def + stats.spd;
-  const percent = (totalStats / maxPossibleStats) * 100;
-
-  if (percent >= 95) return 'S';
-  if (percent >= 85) return 'A';
-  if (percent >= 70) return 'B';
-  if (percent >= 50) return 'C';
-  return 'D';
+  // 이제 정규분포 랜덤으로 결정
+  return rollGrowthGroup();
 };
 
 export const getGrowthMultiplier = (group: GrowthGroup): number => {

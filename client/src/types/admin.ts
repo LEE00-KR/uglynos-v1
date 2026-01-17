@@ -64,12 +64,11 @@ export interface AdminPetGrowthRates {
 // 성장 그룹 타입
 export type GrowthGroup = 'S' | 'A' | 'B' | 'C' | 'D';
 
-// 총합 스탯 기반 성장 그룹 결정
+// 정규분포 기반 성장 그룹 (포획 시 랜덤 부여)
 export interface GrowthGroupConfig {
   group: GrowthGroup;
-  minPercent: number;  // 최소 백분율 (총합 기준)
-  maxPercent: number;  // 최대 백분율 (총합 기준)
-  multiplier: number;  // 성장률 배수
+  multiplier: number;   // 성장률 배수 (80~100%)
+  probability: number;  // 확률 (정규분포)
 }
 
 export interface AdminPetSprites {
@@ -316,24 +315,21 @@ export const STAT_LABELS: Record<string, string> = {
   spd: 'SPD (순발력)',
 };
 
-// 성장 그룹 설정 (총합 스탯 백분율 기준)
-// 최대 총합 = HP(999) + ATK(100) + DEF(100) + SPD(100) = 1299
-export const MAX_TOTAL_STATS = 1299;
-
+// 성장 그룹 설정 (정규분포 랜덤, 80~100% 배수)
 export const GROWTH_GROUPS: GrowthGroupConfig[] = [
-  { group: 'S', minPercent: 95, maxPercent: 100, multiplier: 1.0 },
-  { group: 'A', minPercent: 85, maxPercent: 94, multiplier: 0.9 },
-  { group: 'B', minPercent: 70, maxPercent: 84, multiplier: 0.8 },
-  { group: 'C', minPercent: 50, maxPercent: 69, multiplier: 0.7 },
-  { group: 'D', minPercent: 0, maxPercent: 49, multiplier: 0.6 },
+  { group: 'S', multiplier: 1.0, probability: 5 },   // 100%, 5%
+  { group: 'A', multiplier: 0.95, probability: 20 }, // 95%, 20%
+  { group: 'B', multiplier: 0.9, probability: 50 },  // 90%, 50%
+  { group: 'C', multiplier: 0.85, probability: 20 }, // 85%, 20%
+  { group: 'D', multiplier: 0.8, probability: 5 },   // 80%, 5%
 ];
 
 export const GROWTH_GROUP_LABELS: Record<GrowthGroup, string> = {
-  S: 'S등급 (95-100%)',
-  A: 'A등급 (85-94%)',
-  B: 'B등급 (70-84%)',
-  C: 'C등급 (50-69%)',
-  D: 'D등급 (0-49%)',
+  S: 'S등급 (×1.0, 5%)',
+  A: 'A등급 (×0.95, 20%)',
+  B: 'B등급 (×0.9, 50%)',
+  C: 'C등급 (×0.85, 20%)',
+  D: 'D등급 (×0.8, 5%)',
 };
 
 export const GROWTH_GROUP_COLORS: Record<GrowthGroup, string> = {
@@ -344,21 +340,16 @@ export const GROWTH_GROUP_COLORS: Record<GrowthGroup, string> = {
   D: 'bg-gray-500',
 };
 
-// 총합 스탯으로 성장 그룹 계산
-export const calculateGrowthGroup = (totalStats: number): GrowthGroup => {
-  const percent = (totalStats / MAX_TOTAL_STATS) * 100;
-  for (const config of GROWTH_GROUPS) {
-    if (percent >= config.minPercent && percent <= config.maxPercent) {
-      return config.group;
-    }
-  }
-  return 'D';
-};
-
 // 성장 그룹 배수 가져오기
 export const getGrowthMultiplier = (group: GrowthGroup): number => {
   const config = GROWTH_GROUPS.find(g => g.group === group);
-  return config?.multiplier ?? 0.6;
+  return config?.multiplier ?? 0.8;  // 기본값 D등급 (80%)
+};
+
+// 성장 그룹 확률 가져오기
+export const getGrowthProbability = (group: GrowthGroup): number => {
+  const config = GROWTH_GROUPS.find(g => g.group === group);
+  return config?.probability ?? 5;
 };
 
 // 별 조건 3 타입

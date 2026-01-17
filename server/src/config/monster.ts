@@ -3,17 +3,30 @@
  */
 
 // ============================================
-// 성장 그룹 설정
+// 성장 그룹 설정 (80~100% 범위, 정규분포 확률)
 // ============================================
 export const GROWTH_GROUPS = {
-  S: { ratioMin: 95, ratioMax: 100, multiplier: 1.0, stars: 3, color: '#FFD700' },
-  A: { ratioMin: 85, ratioMax: 94, multiplier: 0.9, stars: 2, color: '#C0C0C0' },
-  B: { ratioMin: 70, ratioMax: 84, multiplier: 0.8, stars: 1, color: '#CD7F32' },
-  C: { ratioMin: 50, ratioMax: 69, multiplier: 0.7, stars: 0, color: '#808080' },
-  D: { ratioMin: 0, ratioMax: 49, multiplier: 0.6, stars: 0, color: '#404040' },
+  S: { multiplier: 1.0, probability: 5, stars: 3, color: '#FFD700' },   // 100%, 5%
+  A: { multiplier: 0.95, probability: 20, stars: 2, color: '#C0C0C0' }, // 95%, 20%
+  B: { multiplier: 0.9, probability: 50, stars: 1, color: '#CD7F32' },  // 90%, 50%
+  C: { multiplier: 0.85, probability: 20, stars: 0, color: '#808080' }, // 85%, 20%
+  D: { multiplier: 0.8, probability: 5, stars: 0, color: '#404040' },   // 80%, 5%
 } as const;
 
 export type GrowthGroup = keyof typeof GROWTH_GROUPS;
+
+// 정규분포 기반 성장 그룹 랜덤 선택
+export const rollGrowthGroup = (): GrowthGroup => {
+  const roll = Math.random() * 100;
+  let cumulative = 0;
+  for (const [group, config] of Object.entries(GROWTH_GROUPS)) {
+    cumulative += config.probability;
+    if (roll < cumulative) {
+      return group as GrowthGroup;
+    }
+  }
+  return 'B'; // fallback
+};
 
 // ============================================
 // 스탯 제한 설정
