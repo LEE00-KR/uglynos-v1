@@ -460,11 +460,48 @@ export default function PetManagePage() {
 
                 {/* Growth Group Info */}
                 <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 mb-3">
                     <span className="text-sm font-medium text-gray-300">성장 그룹:</span>
                     <span className="text-sm text-yellow-400">
-                      페트 생성 시 랜덤 부여됨
+                      페트 생성 시 확률 기반 랜덤 부여
                     </span>
+                  </div>
+                  <div className="grid grid-cols-7 gap-1 text-xs">
+                    <div className="text-center p-1 bg-fuchsia-600/30 rounded">
+                      <div className="font-bold text-fuchsia-400">S++</div>
+                      <div className="text-gray-400">×1.1</div>
+                      <div className="text-gray-500">0.4%</div>
+                    </div>
+                    <div className="text-center p-1 bg-orange-600/30 rounded">
+                      <div className="font-bold text-orange-400">S+</div>
+                      <div className="text-gray-400">×1.05</div>
+                      <div className="text-gray-500">1%</div>
+                    </div>
+                    <div className="text-center p-1 bg-yellow-600/30 rounded">
+                      <div className="font-bold text-yellow-400">S</div>
+                      <div className="text-gray-400">×1.0</div>
+                      <div className="text-gray-500">2%</div>
+                    </div>
+                    <div className="text-center p-1 bg-purple-600/30 rounded">
+                      <div className="font-bold text-purple-400">A</div>
+                      <div className="text-gray-400">×0.95</div>
+                      <div className="text-gray-500">10%</div>
+                    </div>
+                    <div className="text-center p-1 bg-blue-600/30 rounded border border-blue-500">
+                      <div className="font-bold text-blue-400">B</div>
+                      <div className="text-gray-400">×0.9</div>
+                      <div className="text-gray-500">50%</div>
+                    </div>
+                    <div className="text-center p-1 bg-green-600/30 rounded">
+                      <div className="font-bold text-green-400">C</div>
+                      <div className="text-gray-400">×0.85</div>
+                      <div className="text-gray-500">25%</div>
+                    </div>
+                    <div className="text-center p-1 bg-gray-600/30 rounded">
+                      <div className="font-bold text-gray-400">D</div>
+                      <div className="text-gray-400">×0.8</div>
+                      <div className="text-gray-500">11.6%</div>
+                    </div>
                   </div>
                 </div>
 
