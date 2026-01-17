@@ -191,11 +191,13 @@ export async function addExperience(
     growthInfo = pet.growth_info as PetGrowthInfo;
   } else {
     // 레거시 데이터: 단일 growth_group으로 모든 스탯 동일하게 적용
-    const legacyGroup = pet.growth_group || 'B';
-    const legacyMultiplier = {
+    type LegacyGrowthGroup = 'S++' | 'S+' | 'S' | 'A' | 'B' | 'C' | 'D';
+    const legacyGroup = (pet.growth_group || 'B') as LegacyGrowthGroup;
+    const multiplierMap: Record<LegacyGrowthGroup, number> = {
       'S++': 1.04, 'S+': 1.02, 'S': 1.01, 'A': 1.00,
       'B': 0.97, 'C': 0.94, 'D': 0.90
-    }[legacyGroup] || 0.97;
+    };
+    const legacyMultiplier = multiplierMap[legacyGroup] ?? 0.97;
 
     growthInfo = {
       baseGroup: legacyGroup,
