@@ -33,8 +33,8 @@ export interface GrowthRates {
   spd: number;  // SPD 성장률
 }
 
-// 성장 그룹
-export type GrowthGroup = 'S' | 'A' | 'B' | 'C' | 'D';
+// 성장 그룹 (S++/S+ 추가, 확률 기반)
+export type GrowthGroup = 'S++' | 'S+' | 'S' | 'A' | 'B' | 'C' | 'D';
 
 // =====================================================
 // 상태이상 (9가지)
