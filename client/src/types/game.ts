@@ -94,7 +94,6 @@ export interface BattleUnit {
   // 적 전용
   isCapturable?: boolean;
   isRareColor?: boolean;
-  captureRate?: number;
 
   // 전투 상태
   isAlive: boolean;

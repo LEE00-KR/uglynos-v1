@@ -4,25 +4,32 @@ import { useAdminStore } from '../../stores/adminStore';
 import type { AdminPet, AdminPetBaseStatsRange, AdminPetBonusPool, AdminPetGrowthRatesRange, AdminPetSprites, ElementType } from '../../types/admin';
 import { ELEMENTS, ELEMENT_LABELS, ELEMENT_COLORS, STATS, STAT_LABELS } from '../../types/admin';
 
+// 숫자 포맷 (0.1 → "0.1", .1 방지)
+const formatNumber = (value: number | undefined | null): string => {
+  if (value === undefined || value === null) return '';
+  if (value === 0) return '0';
+  return value.toString();
+};
+
+// 빈 기본값 (입력 즉시 가능하도록)
 const defaultPet: Omit<AdminPet, 'createdAt' | 'updatedAt'> = {
   id: '',
   name: '',
   element: { primary: 'earth', secondary: null, primaryRatio: 100 },
   baseStatsRange: {
-    hp: { min: 80, max: 120 },
-    atk: { min: 8, max: 12 },
-    def: { min: 8, max: 12 },
-    spd: { min: 8, max: 12 },
+    hp: { min: 0, max: 0 },
+    atk: { min: 0, max: 0 },
+    def: { min: 0, max: 0 },
+    spd: { min: 0, max: 0 },
   },
-  bonusPool: { hp: 10, atk: 2, def: 2, spd: 2 },
+  bonusPool: { hp: 0, atk: 0, def: 0, spd: 0 },
   growthRatesRange: {
-    hp: { min: 5, max: 10 },
-    atk: { min: 1, max: 2 },
-    def: { min: 1, max: 2 },
-    spd: { min: 1, max: 2 },
+    hp: { min: 0, max: 0 },
+    atk: { min: 0, max: 0 },
+    def: { min: 0, max: 0 },
+    spd: { min: 0, max: 0 },
   },
-  totalStats: 156,
-  captureRate: 50,
+  totalStats: 0,
   sprites: { idle: '', attack: '', hit: '', defend: '', down: '', walk: '' },
   skills: [],
 };
@@ -163,13 +170,40 @@ export default function PetManagePage() {
     });
   };
 
-  const handleGrowthRateRangeChange = (stat: keyof AdminPetGrowthRatesRange, field: 'min' | 'max', value: string) => {
-    const numValue = value === '' ? 0 : parseFloat(value);
-    const newRange = { ...formData.growthRatesRange[stat], [field]: numValue };
+  // 성장률: 기준값 ± 범위 입력 (내부적으로 min/max로 저장)
+  const handleGrowthRateBaseChange = (stat: keyof AdminPetGrowthRatesRange, value: string) => {
+    const baseValue = value === '' ? 0 : parseFloat(value);
+    const currentRange = formData.growthRatesRange[stat];
+    const currentDiff = (currentRange.max - currentRange.min) / 2;
+    const newMin = Math.max(0, baseValue - currentDiff);
+    const newMax = baseValue + currentDiff;
     setFormData({
       ...formData,
-      growthRatesRange: { ...formData.growthRatesRange, [stat]: newRange },
+      growthRatesRange: { ...formData.growthRatesRange, [stat]: { min: newMin, max: newMax } },
     });
+  };
+
+  const handleGrowthRateRangeChange = (stat: keyof AdminPetGrowthRatesRange, value: string) => {
+    const rangeValue = value === '' ? 0 : parseFloat(value);
+    const currentRange = formData.growthRatesRange[stat];
+    const currentBase = (currentRange.min + currentRange.max) / 2;
+    const newMin = Math.max(0, currentBase - rangeValue);
+    const newMax = currentBase + rangeValue;
+    setFormData({
+      ...formData,
+      growthRatesRange: { ...formData.growthRatesRange, [stat]: { min: newMin, max: newMax } },
+    });
+  };
+
+  // 성장률 기준값과 범위 계산 헬퍼
+  const getGrowthRateBase = (stat: keyof AdminPetGrowthRatesRange): number => {
+    const range = formData.growthRatesRange[stat];
+    return (range.min + range.max) / 2;
+  };
+
+  const getGrowthRateRange = (stat: keyof AdminPetGrowthRatesRange): number => {
+    const range = formData.growthRatesRange[stat];
+    return (range.max - range.min) / 2;
   };
 
   // Validation helpers
@@ -188,20 +222,11 @@ export default function PetManagePage() {
     return value >= 0 && isValidTotalBonusPool;
   };
 
-  const isValidGrowthRate = (stat: keyof AdminPetGrowthRatesRange, field: 'min' | 'max') => {
-    const value = formData.growthRatesRange[stat][field];
-    const max = stat === 'hp' ? 20 : 3;
-    return value >= 0 && value <= max;
-  };
-
-  // Capture rate handlers
-  const handleCaptureRateChange = (value: string) => {
-    const numValue = value === '' ? 0 : parseInt(value);
-    setFormData({ ...formData, captureRate: numValue });
-  };
-
-  const isValidCaptureRate = () => {
-    return formData.captureRate >= 0 && formData.captureRate <= 100;
+  const isValidGrowthRate = (stat: keyof AdminPetGrowthRatesRange) => {
+    const base = getGrowthRateBase(stat);
+    const range = getGrowthRateRange(stat);
+    const maxBase = stat === 'hp' ? 20 : 3;
+    return base >= 0 && base <= maxBase && range >= 0;
   };
 
   const handleSpriteChange = (motion: keyof AdminPetSprites, url: string) => {
@@ -230,12 +255,12 @@ export default function PetManagePage() {
     setFormData({ ...formData, skills: newSkills });
   };
 
-  // Calculate average growth rate (HP 제외)
-  const avgGrowthRate = (
-    (formData.growthRatesRange.atk.min + formData.growthRatesRange.atk.max) / 2 +
-    (formData.growthRatesRange.def.min + formData.growthRatesRange.def.max) / 2 +
-    (formData.growthRatesRange.spd.min + formData.growthRatesRange.spd.max) / 2
-  ) / 3;
+  // 성장률 총합 계산 (HP 제외)
+  const growthRateTotals = {
+    minus: formData.growthRatesRange.atk.min + formData.growthRatesRange.def.min + formData.growthRatesRange.spd.min,
+    base: getGrowthRateBase('atk') + getGrowthRateBase('def') + getGrowthRateBase('spd'),
+    plus: formData.growthRatesRange.atk.max + formData.growthRatesRange.def.max + formData.growthRatesRange.spd.max,
+  };
 
   return (
     <div className="p-8">
@@ -443,24 +468,14 @@ export default function PetManagePage() {
                   </div>
                 </div>
 
-                {/* Capture Rate */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">기본 포획률 (0-100%)</label>
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="number"
-                      value={formData.captureRate || ''}
-                      onChange={(e) => handleCaptureRateChange(e.target.value)}
-                      disabled={!isEditing}
-                      placeholder="0-100"
-                      className={`w-32 px-3 py-2 bg-gray-700 border rounded-lg text-white disabled:opacity-50 ${
-                        isEditing && !isValidCaptureRate() ? 'border-red-500' : 'border-gray-600'
-                      }`}
-                    />
-                    <span className="text-gray-400 text-sm">%</span>
+                {/* Capture Rate Info */}
+                <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+                  <div className="text-sm text-gray-300">
+                    <span className="font-medium">포획률:</span>{' '}
+                    <span className="text-yellow-400">HP 및 캐릭터 레벨에 따라 자동 계산</span>
                   </div>
                   <p className="mt-2 text-xs text-gray-500">
-                    실제 포획률: HP 100% → 4%, HP 50% → 10%, HP 25% → 20%, HP {'<'}10% → 30% (기본값 기준)
+                    기본 5% → HP ≤80%: 10% → HP ≤50%: 20% → HP ≤10%: 30% + 레벨 보너스 (30/50/80레벨: +10/20/30%)
                   </p>
                 </div>
 
@@ -525,13 +540,18 @@ export default function PetManagePage() {
                   </div>
                 </div>
 
-                {/* Growth Rates Range */}
+                {/* Growth Rates (기준값 ± 범위) */}
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <label className="block text-sm font-medium text-gray-300">성장률 범위 (HP: 0-20, 그 외: 0-3)</label>
-                    <span className={`text-sm ${avgGrowthRate >= 0 && avgGrowthRate <= 3 ? 'text-green-400' : 'text-yellow-400'}`}>
-                      평균 성장률 (HP 제외): {avgGrowthRate.toFixed(2)}
-                    </span>
+                    <label className="block text-sm font-medium text-gray-300">성장률 (기준값 ± 범위)</label>
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="text-red-400">-{formatNumber(growthRateTotals.minus)}</span>
+                      <span className="text-gray-300">/</span>
+                      <span className="text-yellow-400">{formatNumber(growthRateTotals.base)}</span>
+                      <span className="text-gray-300">/</span>
+                      <span className="text-green-400">+{formatNumber(growthRateTotals.plus)}</span>
+                      <span className="text-gray-500 text-xs">(HP 제외 총합)</span>
+                    </div>
                   </div>
                   <div className="space-y-3">
                     {STATS.map((stat) => (
@@ -540,31 +560,37 @@ export default function PetManagePage() {
                         <div className="flex-1 flex items-center gap-2">
                           <input
                             type="number"
-                            step="0.05"
-                            value={formData.growthRatesRange[stat].min || ''}
-                            onChange={(e) => handleGrowthRateRangeChange(stat, 'min', e.target.value)}
+                            step="0.1"
+                            value={getGrowthRateBase(stat) || ''}
+                            onChange={(e) => handleGrowthRateBaseChange(stat, e.target.value)}
                             disabled={!isEditing}
-                            placeholder="최소"
+                            placeholder="기준값"
                             className={`flex-1 px-3 py-2 bg-gray-700 border rounded-lg text-white disabled:opacity-50 ${
-                              isEditing && !isValidGrowthRate(stat, 'min') ? 'border-red-500' : 'border-gray-600'
+                              isEditing && !isValidGrowthRate(stat) ? 'border-red-500' : 'border-gray-600'
                             }`}
                           />
-                          <span className="text-gray-400">~</span>
+                          <span className="text-gray-400">±</span>
                           <input
                             type="number"
-                            step="0.05"
-                            value={formData.growthRatesRange[stat].max || ''}
-                            onChange={(e) => handleGrowthRateRangeChange(stat, 'max', e.target.value)}
+                            step="0.1"
+                            value={getGrowthRateRange(stat) || ''}
+                            onChange={(e) => handleGrowthRateRangeChange(stat, e.target.value)}
                             disabled={!isEditing}
-                            placeholder="최대"
+                            placeholder="범위"
                             className={`flex-1 px-3 py-2 bg-gray-700 border rounded-lg text-white disabled:opacity-50 ${
-                              isEditing && !isValidGrowthRate(stat, 'max') ? 'border-red-500' : 'border-gray-600'
+                              isEditing && !isValidGrowthRate(stat) ? 'border-red-500' : 'border-gray-600'
                             }`}
                           />
+                          <span className="text-xs text-gray-500 w-24 text-right">
+                            ({formatNumber(formData.growthRatesRange[stat].min)} ~ {formatNumber(formData.growthRatesRange[stat].max)})
+                          </span>
                         </div>
                       </div>
                     ))}
                   </div>
+                  <p className="mt-3 text-xs text-gray-500">
+                    HP: 0-20, 그 외: 0-3
+                  </p>
                 </div>
 
                 {/* Sprites */}
