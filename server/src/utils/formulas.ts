@@ -454,3 +454,196 @@ export const calculateLevelUpStatIncrease = (
   const variance = 0.8 + Math.random() * 0.4;  // 0.8 ~ 1.2
   return Math.max(1, Math.floor(growthRate * multiplier * variance));
 };
+
+// =====================================================
+// 초기 스탯 기반 성장 시스템 (ISG: Initial Stat Grade)
+// 초기 스탯 위치에 따라 성장 그룹 천장 및 확률 조정
+// =====================================================
+
+/**
+ * ISG (Initial Stat Grade) 계산
+ * 초기 스탯이 min~max 범위에서 어느 위치인지 0~1로 반환
+ * 0 = 최소, 0.5 = 기준(base), 1 = 최대
+ */
+export const calculateISG = (
+  actualStat: number,
+  minStat: number,
+  maxStat: number
+): number => {
+  if (maxStat === minStat) return 0.5;
+  return (actualStat - minStat) / (maxStat - minStat);
+};
+
+/**
+ * 성장 그룹 천장 계산 (ISG 기반)
+ * 낮은 초기 스탯은 높은 성장 그룹에 도달할 수 없음
+ *
+ * ISG 0.00~0.25 → 최대 B (index 4)
+ * ISG 0.25~0.40 → 최대 A (index 3)
+ * ISG 0.40~0.50 → 최대 S (index 2)
+ * ISG 0.50+     → 천장 없음 (S++ 가능)
+ */
+export const getGrowthCeilingIndex = (isg: number): number => {
+  if (isg < 0.25) return 4;  // 최대 B
+  if (isg < 0.40) return 3;  // 최대 A
+  if (isg < 0.50) return 2;  // 최대 S
+  return 0;  // 천장 없음 (S++ 가능)
+};
+
+/**
+ * 성장 그룹 천장 적용
+ * 당첨된 성장 그룹이 천장보다 높으면 천장으로 제한
+ */
+export const applyGrowthCeiling = (
+  rolledGroup: GrowthGroup,
+  isg: number
+): GrowthGroup => {
+  const ceilingIndex = getGrowthCeilingIndex(isg);
+  const rolledIndex = GROWTH_GROUP_ORDER.indexOf(rolledGroup);
+
+  // 당첨 등급이 천장보다 높으면 (인덱스가 작으면) 천장으로 제한
+  if (rolledIndex < ceilingIndex) {
+    return GROWTH_GROUP_ORDER[ceilingIndex];
+  }
+
+  return rolledGroup;
+};
+
+/**
+ * ISG 기반 확률 보정 계수 계산
+ * 정석(ISG=0.5) 근처에서 가장 높은 확률, 멀어질수록 감소
+ *
+ * 가우시안 분포 사용: e^(-(deviation²) / (2σ²))
+ * σ = 0.25
+ */
+export const getProbabilityModifier = (isg: number): number => {
+  const deviation = isg - 0.5;  // 정석 대비 편차
+  const sigma = 0.25;
+  return Math.exp(-(deviation * deviation) / (2 * sigma * sigma));
+};
+
+/**
+ * 스탯별 성장 그룹 계산 (ISG 기반 천장 + 확률 보정 적용)
+ *
+ * @param baseGroup - 기본 당첨 성장 그룹 (전체 펫에 대해 1회 롤)
+ * @param initialStats - 초기 스탯 (포획 시 결정된 값)
+ * @param statsRange - 종족 스탯 범위 (min/max)
+ * @returns 스탯별 실제 적용 성장 그룹
+ */
+export const calculatePerStatGrowthGroups = (
+  baseGroup: GrowthGroup,
+  initialStats: BaseStats,
+  statsRange: PetStatsRange
+): { hp: GrowthGroup; atk: GrowthGroup; def: GrowthGroup; spd: GrowthGroup } => {
+  // 각 스탯별 ISG 계산
+  const hpISG = calculateISG(initialStats.hp, statsRange.hp.min, statsRange.hp.max);
+  const atkISG = calculateISG(initialStats.atk, statsRange.atk.min, statsRange.atk.max);
+  const defISG = calculateISG(initialStats.def, statsRange.def.min, statsRange.def.max);
+  const spdISG = calculateISG(initialStats.spd, statsRange.spd.min, statsRange.spd.max);
+
+  // 각 스탯별 천장 적용
+  return {
+    hp: applyGrowthCeiling(baseGroup, hpISG),
+    atk: applyGrowthCeiling(baseGroup, atkISG),
+    def: applyGrowthCeiling(baseGroup, defISG),
+    spd: applyGrowthCeiling(baseGroup, spdISG),
+  };
+};
+
+/**
+ * 스탯별 레벨업 증가량 계산 (새 시스템)
+ *
+ * @param baseGrowthRate - 종족 기준 성장률
+ * @param perStatGrowthGroups - 스탯별 성장 그룹
+ * @returns 각 스탯 증가량
+ */
+export const calculatePerStatLevelUp = (
+  baseGrowthRate: { hp: number; atk: number; def: number; spd: number },
+  perStatGrowthGroups: { hp: GrowthGroup; atk: GrowthGroup; def: GrowthGroup; spd: GrowthGroup }
+): { hp: number; atk: number; def: number; spd: number } => {
+  const variance = () => 0.8 + Math.random() * 0.4;  // 0.8 ~ 1.2
+
+  return {
+    hp: Math.max(1, Math.floor(
+      baseGrowthRate.hp * getGrowthMultiplier(perStatGrowthGroups.hp) * variance()
+    )),
+    atk: Math.max(1, Math.floor(
+      baseGrowthRate.atk * getGrowthMultiplier(perStatGrowthGroups.atk) * variance()
+    )),
+    def: Math.max(1, Math.floor(
+      baseGrowthRate.def * getGrowthMultiplier(perStatGrowthGroups.def) * variance()
+    )),
+    spd: Math.max(1, Math.floor(
+      baseGrowthRate.spd * getGrowthMultiplier(perStatGrowthGroups.spd) * variance()
+    )),
+  };
+};
+
+/**
+ * 펫 생성 시 성장 정보 생성 (포획 시 호출)
+ *
+ * @param initialStats - 생성된 초기 스탯
+ * @param statsRange - 종족 스탯 범위
+ * @returns 내부 저장용 성장 정보 (유저에게 노출되지 않음)
+ */
+export interface PetGrowthInfo {
+  baseGroup: GrowthGroup;                    // 기본 당첨 성장 그룹
+  perStatGroups: {                           // 스탯별 실제 성장 그룹 (천장 적용됨)
+    hp: GrowthGroup;
+    atk: GrowthGroup;
+    def: GrowthGroup;
+    spd: GrowthGroup;
+  };
+  perStatMultipliers: {                      // 스탯별 실제 배수 (개체차 포함)
+    hp: number;
+    atk: number;
+    def: number;
+    spd: number;
+  };
+}
+
+export const generatePetGrowthInfo = (
+  initialStats: BaseStats,
+  statsRange: PetStatsRange
+): PetGrowthInfo => {
+  // 1. 기본 성장 그룹 롤 (확률 기반)
+  const baseGroup = calculateGrowthGroup();
+
+  // 2. 스탯별 천장 적용
+  const perStatGroups = calculatePerStatGrowthGroups(baseGroup, initialStats, statsRange);
+
+  // 3. 스탯별 실제 배수 결정 (각 그룹 범위 내 랜덤)
+  const perStatMultipliers = {
+    hp: getRandomGrowthMultiplier(perStatGroups.hp),
+    atk: getRandomGrowthMultiplier(perStatGroups.atk),
+    def: getRandomGrowthMultiplier(perStatGroups.def),
+    spd: getRandomGrowthMultiplier(perStatGroups.spd),
+  };
+
+  return {
+    baseGroup,
+    perStatGroups,
+    perStatMultipliers,
+  };
+};
+
+/**
+ * 레벨업 시 스탯 증가량 계산 (저장된 성장 정보 사용)
+ *
+ * @param baseGrowthRate - 종족 기준 성장률
+ * @param growthInfo - 펫의 성장 정보 (생성 시 결정됨)
+ * @returns 레벨업 스탯 증가량
+ */
+export const calculateLevelUpWithGrowthInfo = (
+  baseGrowthRate: { hp: number; atk: number; def: number; spd: number },
+  growthInfo: PetGrowthInfo
+): { hp: number; atk: number; def: number; spd: number } => {
+  const variance = () => 0.8 + Math.random() * 0.4;  // 0.8 ~ 1.2
+
+  return {
+    hp: Math.max(1, Math.floor(baseGrowthRate.hp * growthInfo.perStatMultipliers.hp * variance())),
+    atk: Math.max(1, Math.floor(baseGrowthRate.atk * growthInfo.perStatMultipliers.atk * variance())),
+    def: Math.max(1, Math.floor(baseGrowthRate.def * growthInfo.perStatMultipliers.def * variance())),
+    spd: Math.max(1, Math.floor(baseGrowthRate.spd * growthInfo.perStatMultipliers.spd * variance())),
+  };
+};

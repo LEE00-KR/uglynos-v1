@@ -37,6 +37,26 @@ export interface GrowthRates {
 export type GrowthGroup = 'S++' | 'S+' | 'S' | 'A' | 'B' | 'C' | 'D';
 
 // =====================================================
+// 내부 성장 정보 (유저에게 노출되지 않음)
+// 포획 시 결정되어 DB에 저장됨
+// =====================================================
+export interface PetGrowthInfo {
+  baseGroup: GrowthGroup;              // 기본 당첨 성장 그룹
+  perStatGroups: {                     // 스탯별 실제 성장 그룹 (천장 적용됨)
+    hp: GrowthGroup;
+    atk: GrowthGroup;
+    def: GrowthGroup;
+    spd: GrowthGroup;
+  };
+  perStatMultipliers: {                // 스탯별 실제 배수 (개체차 포함)
+    hp: number;
+    atk: number;
+    def: number;
+    spd: number;
+  };
+}
+
+// =====================================================
 // 전투 유닛 (캐릭터/펫/적)
 // =====================================================
 
@@ -131,8 +151,9 @@ export interface BattleUnit {
   isRiding?: boolean;
   isRepresentative?: boolean;
   ridingPetId?: string;
-  growthGroup?: GrowthGroup;
-  growthRates?: GrowthRates;
+  growthGroup?: GrowthGroup;           // 레거시: 단일 성장 그룹
+  growthRates?: GrowthRates;           // 종족 기준 성장률
+  growthInfo?: PetGrowthInfo;          // 내부: 스탯별 성장 정보 (유저에게 비공개)
 
   // 적 전용
   isCapturable?: boolean;
