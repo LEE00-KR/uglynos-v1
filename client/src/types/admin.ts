@@ -91,8 +91,6 @@ export interface AdminPet {
   growthRatesRange: AdminPetGrowthRatesRange;
   // 총합 스탯 (자동 계산용)
   totalStats: number;
-  // 포획률 (0-100%)
-  captureRate: number;
   // 스프라이트
   sprites: AdminPetSprites;
   skills: string[];
@@ -292,16 +290,22 @@ export const SHOP_TYPES: { value: ShopType; label: string }[] = [
 
 export const ELEMENTS: ElementType[] = ['earth', 'water', 'fire', 'wind'];
 export const ELEMENT_LABELS: Record<ElementType, string> = {
+  earth: '地',
+  water: '水',
+  fire: '火',
+  wind: '風',
+};
+export const ELEMENT_LABELS_KR: Record<ElementType, string> = {
   earth: '지',
   water: '수',
   fire: '화',
   wind: '풍',
 };
 export const ELEMENT_COLORS: Record<ElementType, string> = {
-  earth: 'bg-amber-600',
-  water: 'bg-blue-500',
-  fire: 'bg-red-500',
-  wind: 'bg-green-500',
+  earth: 'bg-green-500',   // 지 = 초록
+  water: 'bg-blue-500',    // 수 = 파랑
+  fire: 'bg-red-500',      // 화 = 빨강
+  wind: 'bg-yellow-500',   // 풍 = 노랑
 };
 
 export const STATS = ['hp', 'atk', 'def', 'spd'] as const;
