@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAdminStore } from '../../stores/adminStore';
 import type { AdminPet, AdminPetBaseStatsRange, AdminPetGrowthRatesRange, AdminPetSprites, ElementType, StatRange } from '../../types/admin';
-import { ELEMENTS, ELEMENT_LABELS, ELEMENT_COLORS, STATS, STAT_LABELS, GROWTH_GROUPS } from '../../types/admin';
+import { ELEMENTS, ELEMENT_LABELS, ELEMENT_COLORS, STATS, STAT_LABELS, GROWTH_GROUPS, getValidSecondaryElements } from '../../types/admin';
 
 // 숫자 포맷
 const formatNumber = (value: number | undefined | null, decimal: number = 0): string => {
@@ -117,7 +117,16 @@ export default function PetManagePage() {
 
   // Element handlers
   const handlePrimaryElementChange = (element: ElementType) => {
-    setFormData({ ...formData, element: { ...formData.element, primary: element } });
+    const validSecondaries = getValidSecondaryElements(element);
+    const currentSecondary = formData.element.secondary;
+    // 현재 부속성이 새 주속성과 호환되지 않으면 null로 리셋
+    const newSecondary = currentSecondary && validSecondaries.includes(currentSecondary)
+      ? currentSecondary
+      : null;
+    setFormData({
+      ...formData,
+      element: { ...formData.element, primary: element, secondary: newSecondary }
+    });
   };
 
   const handleSecondaryElementChange = (element: ElementType | null) => {
@@ -312,10 +321,11 @@ export default function PetManagePage() {
                         className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
                       >
                         <option value="">없음</option>
-                        {ELEMENTS.filter((el) => el !== formData.element.primary).map((el) => (
+                        {getValidSecondaryElements(formData.element.primary).map((el) => (
                           <option key={el} value={el}>{ELEMENT_LABELS[el]}</option>
                         ))}
                       </select>
+                      <p className="text-xs text-gray-500 mt-1">* 지화, 수풍 조합 불가</p>
                     </div>
                     <div>
                       <label className="block text-xs text-gray-400 mb-1">주 속성 비율 (%)</label>
@@ -398,66 +408,41 @@ export default function PetManagePage() {
                   </div>
                 </div>
 
-                {/* Growth Rates - [최소][기준][최대] */}
+                {/* Growth Rates - 기준값만 입력 */}
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <label className="block text-sm font-medium text-gray-300">성장률 (최소 / 기준 / 최대)</label>
+                    <label className="block text-sm font-medium text-gray-300">종족 기준 성장률</label>
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="text-red-400">{formatNumber(getGrowthSum('min'), 2)}</span>
-                      <span className="text-gray-500">/</span>
                       <span className="text-yellow-400 font-bold">{formatNumber(getGrowthSum('base'), 2)}</span>
-                      <span className="text-gray-500">/</span>
-                      <span className="text-green-400">{formatNumber(getGrowthSum('max'), 2)}</span>
-                      <span className="text-gray-500 text-xs">(HP 제외)</span>
+                      <span className="text-gray-500 text-xs">(HP 제외 합산)</span>
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <div className="grid grid-cols-4 gap-2 text-xs text-gray-400 mb-1">
-                      <div></div>
-                      <div className="text-center">최소</div>
-                      <div className="text-center">기준</div>
-                      <div className="text-center">최대</div>
-                    </div>
                     {STATS.map((stat) => (
-                      <div key={stat} className="grid grid-cols-4 gap-2 items-center">
+                      <div key={stat} className="grid grid-cols-2 gap-4 items-center">
                         <label className="text-sm text-gray-400">{STAT_LABELS[stat]}</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={formData.growthRatesRange[stat].min || ''}
-                          onChange={(e) => handleGrowthRateChange(stat, 'min', e.target.value)}
-                          disabled={!isEditing}
-                          placeholder="최소"
-                          className="px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50 text-center"
-                        />
                         <input
                           type="number"
                           step="0.1"
                           value={formData.growthRatesRange[stat].base || ''}
                           onChange={(e) => handleGrowthRateChange(stat, 'base', e.target.value)}
                           disabled={!isEditing}
-                          placeholder="기준"
-                          className="px-2 py-1.5 bg-yellow-900/30 border border-yellow-600/50 rounded text-yellow-400 text-sm disabled:opacity-50 text-center font-bold"
-                        />
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={formData.growthRatesRange[stat].max || ''}
-                          onChange={(e) => handleGrowthRateChange(stat, 'max', e.target.value)}
-                          disabled={!isEditing}
-                          placeholder="최대"
-                          className="px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50 text-center"
+                          placeholder="기준 성장률"
+                          className="px-3 py-2 bg-yellow-900/30 border border-yellow-600/50 rounded text-yellow-400 text-sm disabled:opacity-50 text-center font-bold"
                         />
                       </div>
                     ))}
                   </div>
+                  <p className="text-xs text-gray-500 mt-3">
+                    * 실제 성장은 개체별 성장 그룹(S++ ~ D)에 따라 기준 성장률 × 배수로 결정됩니다
+                  </p>
                 </div>
 
                 {/* Growth Group Preview - 성장률 × 배수 미리보기 */}
                 <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-sm font-medium text-gray-300">성장 그룹 미리보기</span>
-                    <span className="text-xs text-gray-500">입력한 기준 성장률 × 그룹 배수</span>
+                    <span className="text-xs text-gray-500">기준 성장률 × 최종 배수 = 레벨당 성장</span>
                   </div>
 
                   {/* 테이블 헤더 */}
@@ -473,29 +458,65 @@ export default function PetManagePage() {
                     <div className="text-orange-400 font-medium">HP</div>
                     {GROWTH_GROUPS.map((g) => {
                       const baseRate = formData.growthRatesRange.hp.base || 0;
-                      const minVal = baseRate * g.multiplierMin;
-                      const maxVal = baseRate * g.multiplierMax;
+                      const finalVal = baseRate * g.multiplier;
                       return (
                         <div key={g.group} className="text-center text-orange-300">
-                          {baseRate > 0 ? `${minVal.toFixed(1)}~${maxVal.toFixed(1)}` : '-'}
+                          {baseRate > 0 ? finalVal.toFixed(2) : '-'}
                         </div>
                       );
                     })}
                   </div>
 
-                  {/* ATK+DEF+SPD 행 */}
+                  {/* ATK 행 */}
                   <div className="grid grid-cols-8 gap-1 text-xs py-1 border-t border-gray-600">
-                    <div className="text-cyan-400 font-medium">능력합</div>
+                    <div className="text-red-400 font-medium">ATK</div>
                     {GROWTH_GROUPS.map((g) => {
-                      const baseSum = getGrowthSum('base');
-                      const minVal = baseSum * g.multiplierMin;
-                      const maxVal = baseSum * g.multiplierMax;
+                      const baseRate = formData.growthRatesRange.atk.base || 0;
+                      const finalVal = baseRate * g.multiplier;
                       return (
-                        <div key={g.group} className="text-center text-cyan-300">
-                          {baseSum > 0 ? `${minVal.toFixed(1)}~${maxVal.toFixed(1)}` : '-'}
+                        <div key={g.group} className="text-center text-red-300">
+                          {baseRate > 0 ? finalVal.toFixed(2) : '-'}
                         </div>
                       );
                     })}
+                  </div>
+
+                  {/* DEF 행 */}
+                  <div className="grid grid-cols-8 gap-1 text-xs py-1 border-t border-gray-600">
+                    <div className="text-blue-400 font-medium">DEF</div>
+                    {GROWTH_GROUPS.map((g) => {
+                      const baseRate = formData.growthRatesRange.def.base || 0;
+                      const finalVal = baseRate * g.multiplier;
+                      return (
+                        <div key={g.group} className="text-center text-blue-300">
+                          {baseRate > 0 ? finalVal.toFixed(2) : '-'}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* SPD 행 */}
+                  <div className="grid grid-cols-8 gap-1 text-xs py-1 border-t border-gray-600">
+                    <div className="text-green-400 font-medium">SPD</div>
+                    {GROWTH_GROUPS.map((g) => {
+                      const baseRate = formData.growthRatesRange.spd.base || 0;
+                      const finalVal = baseRate * g.multiplier;
+                      return (
+                        <div key={g.group} className="text-center text-green-300">
+                          {baseRate > 0 ? finalVal.toFixed(2) : '-'}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* 배수 행 */}
+                  <div className="grid grid-cols-8 gap-1 text-xs py-1 border-t border-gray-600">
+                    <div className="text-gray-400">배수</div>
+                    {GROWTH_GROUPS.map((g) => (
+                      <div key={g.group} className="text-center text-gray-500 font-mono">
+                        ×{g.multiplier}
+                      </div>
+                    ))}
                   </div>
 
                   {/* 확률 행 */}
@@ -503,16 +524,6 @@ export default function PetManagePage() {
                     <div className="text-gray-400">확률</div>
                     {GROWTH_GROUPS.map((g) => (
                       <div key={g.group} className="text-center text-gray-500">{g.probability}%</div>
-                    ))}
-                  </div>
-
-                  {/* 배수 범위 행 */}
-                  <div className="grid grid-cols-8 gap-1 text-xs py-1 border-t border-gray-600">
-                    <div className="text-gray-400">배수</div>
-                    {GROWTH_GROUPS.map((g) => (
-                      <div key={g.group} className="text-center text-gray-500">
-                        {g.multiplierMin}~{g.multiplierMax}
-                      </div>
                     ))}
                   </div>
                 </div>

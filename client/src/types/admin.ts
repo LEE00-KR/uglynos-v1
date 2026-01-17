@@ -302,6 +302,19 @@ export const ELEMENT_COLORS: Record<ElementType, string> = {
   wind: 'bg-yellow-500',   // 풍 = 노랑
 };
 
+// 상극 속성 (조합 불가): 지화(earth+fire), 수풍(water+wind)
+export const ELEMENT_INCOMPATIBLE: Record<ElementType, ElementType> = {
+  earth: 'fire',
+  fire: 'earth',
+  water: 'wind',
+  wind: 'water',
+};
+
+// 유효한 부속성 목록 반환
+export const getValidSecondaryElements = (primary: ElementType): ElementType[] => {
+  return ELEMENTS.filter((el) => el !== primary && el !== ELEMENT_INCOMPATIBLE[primary]);
+};
+
 export const STATS = ['hp', 'atk', 'def', 'spd'] as const;
 export const STAT_LABELS: Record<string, string> = {
   hp: 'HP (체력)',
@@ -325,13 +338,13 @@ export const GROWTH_GROUPS: GrowthGroupConfig[] = [
 ];
 
 export const GROWTH_GROUP_LABELS: Record<GrowthGroup, string> = {
-  'S++': 'S++ (전설, 0.4%)',
-  'S+': 'S+ (영웅, 1%)',
-  'S': 'S (최상, 2%)',
-  'A': 'A (상, 10%)',
-  'B': 'B (중, 50%)',
-  'C': 'C (하, 25%)',
-  'D': 'D (최하, 11.6%)',
+  'S++': 'S++ (0.4%)',
+  'S+': 'S+ (1%)',
+  'S': 'S (2%)',
+  'A': 'A (10%)',
+  'B': 'B (50%)',
+  'C': 'C (25%)',
+  'D': 'D (11.6%)',
 };
 
 export const GROWTH_GROUP_COLORS: Record<GrowthGroup, string> = {
