@@ -8,10 +8,10 @@ import { supabase } from '../config/database.js';
 import { MAX_LEVEL, getRequiredExpForLevel } from '../config/monster.js';
 import {
   generateRandomPetStats,
-  generateRandomGrowthRates,
-  calculateGrowthGroup,
-  calculateLevelUpStatIncrease,
-  type GrowthGroup,
+  generatePetGrowthInfo,
+  calculateLevelUpWithGrowthInfo,
+  type PetGrowthInfo,
+  type PetStatsRange,
 } from '../utils/formulas.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 import type { BaseStats } from '../types/game.js';
@@ -27,7 +27,7 @@ interface LevelUpResult {
 }
 
 // ============================================
-// 펫 공개 데이터 타입
+// 펫 공개 데이터 타입 (성장 그룹은 비공개)
 // ============================================
 interface PetPublicData {
   id: string;
@@ -44,7 +44,7 @@ interface PetPublicData {
     def: number;
     spd: number;
   };
-  growthGroup: GrowthGroup;
+  // growthGroup 제거됨 - 유저에게 비공개
   currentHp: number;
   maxHp: number;
   loyalty: number;
@@ -57,7 +57,7 @@ interface PetPublicData {
 }
 
 // ============================================
-// 펫 생성 (포획 시 사용)
+// 펫 생성 (포획 시 사용) - ISG 기반 성장 시스템
 // ============================================
 export async function createPet(
   characterId: string,
@@ -76,38 +76,49 @@ export async function createPet(
     throw new NotFoundError('펫 템플릿');
   }
 
-  // 2. 랜덤 스탯 생성 (4스탯)
-  const stats = generateRandomPetStats(
-    {
-      hp: { min: template.base_hp_min, max: template.base_hp_max },
-      atk: { min: template.base_atk_min, max: template.base_atk_max },
-      def: { min: template.base_def_min, max: template.base_def_max },
-      spd: { min: template.base_spd_min, max: template.base_spd_max },
+  // 2. 스탯 범위 정의 (ISG 계산용)
+  const statsRange: PetStatsRange = {
+    hp: {
+      min: template.base_hp_min,
+      base: template.base_hp_base ?? Math.floor((template.base_hp_min + template.base_hp_max) / 2),
+      max: template.base_hp_max,
     },
-    {
-      hp: template.bonus_hp,
-      atk: template.bonus_atk,
-      def: template.bonus_def,
-      spd: template.bonus_spd,
-    }
-  );
+    atk: {
+      min: template.base_atk_min,
+      base: template.base_atk_base ?? Math.floor((template.base_atk_min + template.base_atk_max) / 2),
+      max: template.base_atk_max,
+    },
+    def: {
+      min: template.base_def_min,
+      base: template.base_def_base ?? Math.floor((template.base_def_min + template.base_def_max) / 2),
+      max: template.base_def_max,
+    },
+    spd: {
+      min: template.base_spd_min,
+      base: template.base_spd_base ?? Math.floor((template.base_spd_min + template.base_spd_max) / 2),
+      max: template.base_spd_max,
+    },
+  };
 
-  // 3. 성장률 생성 (4스탯)
-  const growthRates = generateRandomGrowthRates({
-    hp: { min: template.growth_hp_min, max: template.growth_hp_max },
-    atk: { min: template.growth_atk_min, max: template.growth_atk_max },
-    def: { min: template.growth_def_min, max: template.growth_def_max },
-    spd: { min: template.growth_spd_min, max: template.growth_spd_max },
-  });
+  // 3. 랜덤 초기 스탯 생성 (min~max 범위 내)
+  const stats = generateRandomPetStats(statsRange);
 
-  // 4. 성장 그룹 결정
-  const growthGroup = calculateGrowthGroup(stats, template.total_stats);
+  // 4. 종족 기준 성장률 (base 값 사용)
+  const baseGrowthRates = {
+    hp: template.growth_hp_base ?? (template.growth_hp_min + template.growth_hp_max) / 2,
+    atk: template.growth_atk_base ?? (template.growth_atk_min + template.growth_atk_max) / 2,
+    def: template.growth_def_base ?? (template.growth_def_min + template.growth_def_max) / 2,
+    spd: template.growth_spd_base ?? (template.growth_spd_min + template.growth_spd_max) / 2,
+  };
 
-  // 5. DB에 저장
+  // 5. ISG 기반 성장 정보 생성 (초기 스탯 기반 천장 + 확률 적용)
+  const growthInfo = generatePetGrowthInfo(stats, statsRange);
+
+  // 6. DB에 저장
   const petId = uuidv4();
   const now = new Date().toISOString();
 
-  const { error: insertError } = await supabase.from('pets').insert({
+  const { error: insertError } = await supabase.from('user_pets').insert({
     id: petId,
     character_id: characterId,
     template_id: templateId,
@@ -118,11 +129,12 @@ export async function createPet(
     stat_atk: stats.atk,
     stat_def: stats.def,
     stat_spd: stats.spd,
-    growth_hp: growthRates.hp,
-    growth_atk: growthRates.atk,
-    growth_def: growthRates.def,
-    growth_spd: growthRates.spd,
-    growth_group: growthGroup,
+    growth_hp: baseGrowthRates.hp,
+    growth_atk: baseGrowthRates.atk,
+    growth_def: baseGrowthRates.def,
+    growth_spd: baseGrowthRates.spd,
+    growth_group: growthInfo.baseGroup,  // 레거시 호환
+    growth_info: growthInfo,  // 새 시스템: 스탯별 성장 정보 (JSONB)
     current_hp: stats.hp,
     loyalty: initialLoyalty,
     is_rare_color: isRareColor,
@@ -135,6 +147,7 @@ export async function createPet(
     throw insertError;
   }
 
+  // 반환값에서 성장 그룹 정보 제외 (유저에게 비공개)
   return {
     id: petId,
     templateId,
@@ -142,8 +155,7 @@ export async function createPet(
     level: 1,
     exp: 0,
     stats,
-    growthRates,
-    growthGroup,
+    growthRates: baseGrowthRates,
     currentHp: stats.hp,
     loyalty: initialLoyalty,
     isRareColor,
@@ -151,16 +163,16 @@ export async function createPet(
 }
 
 // ============================================
-// 경험치 추가 및 레벨업 처리
+// 경험치 추가 및 레벨업 처리 - ISG 기반 성장 시스템
 // ============================================
 export async function addExperience(
   petId: string,
   characterId: string,
   expAmount: number
 ): Promise<{ levelUps: LevelUpResult[]; finalExp: number; finalLevel: number }> {
-  // 1. 펫 조회
+  // 1. 펫 조회 (growth_info 포함)
   const { data: pet, error: petError } = await supabase
-    .from('pets')
+    .from('user_pets')
     .select('*')
     .eq('id', petId)
     .single();
@@ -173,7 +185,39 @@ export async function addExperience(
     throw new ValidationError('접근 권한이 없습니다');
   }
 
-  // 2. 경험치 추가 및 레벨업 처리
+  // 2. 성장 정보 파싱 (새 시스템 또는 레거시 호환)
+  let growthInfo: PetGrowthInfo;
+  if (pet.growth_info) {
+    growthInfo = pet.growth_info as PetGrowthInfo;
+  } else {
+    // 레거시 데이터: 단일 growth_group으로 모든 스탯 동일하게 적용
+    const legacyGroup = pet.growth_group || 'B';
+    const legacyMultiplier = {
+      'S++': 1.04, 'S+': 1.02, 'S': 1.01, 'A': 1.00,
+      'B': 0.97, 'C': 0.94, 'D': 0.90
+    }[legacyGroup] || 0.97;
+
+    growthInfo = {
+      baseGroup: legacyGroup,
+      perStatGroups: {
+        hp: legacyGroup, atk: legacyGroup, def: legacyGroup, spd: legacyGroup,
+      },
+      perStatMultipliers: {
+        hp: legacyMultiplier, atk: legacyMultiplier,
+        def: legacyMultiplier, spd: legacyMultiplier,
+      },
+    };
+  }
+
+  // 3. 종족 기준 성장률
+  const baseGrowthRates = {
+    hp: pet.growth_hp,
+    atk: pet.growth_atk,
+    def: pet.growth_def,
+    spd: pet.growth_spd,
+  };
+
+  // 4. 경험치 추가 및 레벨업 처리
   const levelUps: LevelUpResult[] = [];
   let currentExp = pet.exp + expAmount;
   let currentLevel = pet.level;
@@ -192,13 +236,8 @@ export async function addExperience(
     const previousLevel = currentLevel;
     currentLevel++;
 
-    // 레벨업 스탯 증가 계산
-    const statIncreases: BaseStats = {
-      hp: calculateLevelUpStatIncrease(pet.growth_hp, pet.growth_group),
-      atk: calculateLevelUpStatIncrease(pet.growth_atk, pet.growth_group),
-      def: calculateLevelUpStatIncrease(pet.growth_def, pet.growth_group),
-      spd: calculateLevelUpStatIncrease(pet.growth_spd, pet.growth_group),
-    };
+    // 레벨업 스탯 증가 계산 (스탯별 배수 적용)
+    const statIncreases = calculateLevelUpWithGrowthInfo(baseGrowthRates, growthInfo);
 
     currentStats = {
       hp: currentStats.hp + statIncreases.hp,
@@ -215,9 +254,9 @@ export async function addExperience(
     });
   }
 
-  // 3. DB 업데이트
+  // 5. DB 업데이트
   const { error: updateError } = await supabase
-    .from('pets')
+    .from('user_pets')
     .update({
       level: currentLevel,
       exp: currentExp,
@@ -248,7 +287,7 @@ export async function getPetPublicData(
   characterId: string
 ): Promise<PetPublicData> {
   const { data: pet, error: petError } = await supabase
-    .from('pets')
+    .from('user_pets')
     .select(`
       *,
       admin_pets (
@@ -278,7 +317,7 @@ export async function getPetPublicData(
 // ============================================
 export async function getAllPetsPublicData(characterId: string): Promise<PetPublicData[]> {
   const { data: pets, error } = await supabase
-    .from('pets')
+    .from('user_pets')
     .select(`
       *,
       admin_pets (
@@ -306,7 +345,7 @@ export async function updateLoyalty(
   change: number
 ): Promise<number> {
   const { data: pet, error: petError } = await supabase
-    .from('pets')
+    .from('user_pets')
     .select('loyalty, character_id')
     .eq('id', petId)
     .single();
@@ -321,7 +360,7 @@ export async function updateLoyalty(
 
   const newLoyalty = Math.max(0, Math.min(100, pet.loyalty + change));
 
-  await supabase.from('pets').update({ loyalty: newLoyalty }).eq('id', petId);
+  await supabase.from('user_pets').update({ loyalty: newLoyalty }).eq('id', petId);
 
   return newLoyalty;
 }
@@ -334,7 +373,7 @@ export async function updateBattleStats(
   currentHp: number
 ): Promise<void> {
   await supabase
-    .from('pets')
+    .from('user_pets')
     .update({
       current_hp: Math.max(0, currentHp),
     })
@@ -346,7 +385,7 @@ export async function updateBattleStats(
 // ============================================
 export async function fullRestore(petId: string, characterId: string): Promise<void> {
   const { data: pet, error: petError } = await supabase
-    .from('pets')
+    .from('user_pets')
     .select('stat_hp, character_id')
     .eq('id', petId)
     .single();
@@ -360,7 +399,7 @@ export async function fullRestore(petId: string, characterId: string): Promise<v
   }
 
   await supabase
-    .from('pets')
+    .from('user_pets')
     .update({
       current_hp: pet.stat_hp,  // 최대 HP로 회복
     })
@@ -399,7 +438,7 @@ export async function restoreCharacter(
 }
 
 // ============================================
-// 헬퍼 함수: DB Row -> PetPublicData
+// 헬퍼 함수: DB Row -> PetPublicData (성장 그룹 비공개)
 // ============================================
 function toPetPublicData(row: any): PetPublicData {
   const template = row.admin_pets;
@@ -424,7 +463,7 @@ function toPetPublicData(row: any): PetPublicData {
       def: row.growth_def,
       spd: row.growth_spd,
     },
-    growthGroup: row.growth_group,
+    // growthGroup 제거됨 - 유저에게 비공개
     currentHp: row.current_hp ?? row.stat_hp,
     maxHp: row.stat_hp,
     loyalty: row.loyalty,

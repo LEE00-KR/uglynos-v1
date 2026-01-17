@@ -33,7 +33,8 @@ export interface GrowthRates {
   spd: number;  // SPD 성장률
 }
 
-// 성장 그룹 (S++/S+ 추가, 확률 기반)
+// 성장 그룹 (내부 시스템용 - 유저에게 노출되지 않음)
+// 서버에서만 사용, 클라이언트에서는 레거시 호환용으로만 유지
 export type GrowthGroup = 'S++' | 'S+' | 'S' | 'A' | 'B' | 'C' | 'D';
 
 // =====================================================
@@ -88,8 +89,8 @@ export interface BattleUnit {
 
   // 펫 전용
   loyalty?: number;
-  growthGroup?: GrowthGroup;
   growthRates?: GrowthRates;
+  // growthGroup 제거됨 - 유저에게 비공개
 
   // 적 전용
   isCapturable?: boolean;
@@ -211,11 +212,11 @@ export interface Pet {
   // 4스탯
   stats: BaseStats;
 
-  // 성장률
+  // 성장률 (종족 기준값 - 실제 성장은 내부 계산에 의해 결정됨)
   growthRates: GrowthRates;
 
-  // 성장 그룹
-  growthGroup: GrowthGroup;
+  // 성장 그룹 - 제거됨 (유저에게 비공개)
+  // 실제 성장은 초기 스탯 + 내부 확률 시스템으로 결정됨
 
   // 현재 HP (자동 회복 없음)
   currentHp: number;

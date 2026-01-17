@@ -1,9 +1,8 @@
-import type { BattleUnit } from '../../types/game.js';
+import type { BattleUnit, PetGrowthInfo } from '../../types/game.js';
 import {
-  generateRandomGrowthRates,
-  calculateGrowthGroup,
   calculateCatchRate,
-  type GrowthGroup,
+  generatePetGrowthInfo,
+  type PetStatsRange,
 } from '../../utils/formulas.js';
 
 interface CaptureItem {
@@ -18,7 +17,7 @@ interface CaptureResult {
   reason?: string;
 }
 
-// 4스탯 기반 포획 펫 데이터
+// 4스탯 기반 포획 펫 데이터 (성장 그룹 비공개)
 interface CapturedPetData {
   templateId: string;  // string으로 변경 (admin_pets.id)
   characterId: string;
@@ -30,13 +29,13 @@ interface CapturedPetData {
   stat_atk: number;
   stat_def: number;
   stat_spd: number;
-  // 성장률 (4스탯)
+  // 성장률 (종족 기준값)
   growth_hp: number;
   growth_atk: number;
   growth_def: number;
   growth_spd: number;
-  // 성장 그룹
-  growthGroup: GrowthGroup;
+  // 성장 정보 (내부용, 유저 비공개)
+  growthInfo: PetGrowthInfo;
   loyalty: number;
   isRareColor: boolean;
 }
@@ -78,24 +77,36 @@ export class CaptureManager {
 
   /**
    * Create captured pet data from BattleUnit (4스탯)
+   * ISG 기반 성장 시스템 적용
+   *
+   * @param enemyUnit - 포획 대상 유닛
+   * @param characterId - 포획자 캐릭터 ID
+   * @param statsRange - 종족 스탯 범위 (템플릿에서 가져옴)
+   * @param baseGrowthRates - 종족 기준 성장률 (템플릿에서 가져옴)
    */
   createCapturedPet(
     enemyUnit: BattleUnit,
-    characterId: string
+    characterId: string,
+    statsRange?: PetStatsRange,
+    baseGrowthRates?: { hp: number; atk: number; def: number; spd: number }
   ): CapturedPetData {
-    // Use enemy unit's stats directly
-    const baseStats = enemyUnit.stats;
+    // Use enemy unit's stats directly (포획 시 이미 결정된 초기 스탯)
+    const initialStats = enemyUnit.stats;
 
-    // Generate random growth rates (4스탯)
-    const growthRates = generateRandomGrowthRates({
-      hp: { min: 5.0, max: 10.0 },
-      atk: { min: 1.0, max: 2.0 },
-      def: { min: 1.0, max: 2.0 },
-      spd: { min: 1.0, max: 2.0 },
-    });
+    // 기본값 설정 (템플릿 정보 없을 경우)
+    const defaultStatsRange: PetStatsRange = statsRange || {
+      hp: { min: initialStats.hp - 10, base: initialStats.hp, max: initialStats.hp + 10 },
+      atk: { min: initialStats.atk - 2, base: initialStats.atk, max: initialStats.atk + 2 },
+      def: { min: initialStats.def - 2, base: initialStats.def, max: initialStats.def + 2 },
+      spd: { min: initialStats.spd - 2, base: initialStats.spd, max: initialStats.spd + 2 },
+    };
 
-    // Calculate growth group based on stats
-    const growthGroup = calculateGrowthGroup(baseStats);
+    const defaultGrowthRates = baseGrowthRates || {
+      hp: 7.5, atk: 1.5, def: 1.5, spd: 1.5,
+    };
+
+    // ISG 기반 성장 정보 생성 (초기 스탯 → 천장 + 확률 → 스탯별 성장 그룹)
+    const growthInfo = generatePetGrowthInfo(initialStats, defaultStatsRange);
 
     return {
       templateId: enemyUnit.templateId || '',
@@ -103,15 +114,15 @@ export class CaptureManager {
       nickname: null,
       level: 1,
       exp: 0,
-      stat_hp: baseStats.hp,
-      stat_atk: baseStats.atk,
-      stat_def: baseStats.def,
-      stat_spd: baseStats.spd,
-      growth_hp: growthRates.hp,
-      growth_atk: growthRates.atk,
-      growth_def: growthRates.def,
-      growth_spd: growthRates.spd,
-      growthGroup,
+      stat_hp: initialStats.hp,
+      stat_atk: initialStats.atk,
+      stat_def: initialStats.def,
+      stat_spd: initialStats.spd,
+      growth_hp: defaultGrowthRates.hp,
+      growth_atk: defaultGrowthRates.atk,
+      growth_def: defaultGrowthRates.def,
+      growth_spd: defaultGrowthRates.spd,
+      growthInfo,  // 내부용 성장 정보 (유저에게 비공개)
       loyalty: 50,
       isRareColor: enemyUnit.isRareColor || false,
     };
