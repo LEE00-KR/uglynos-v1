@@ -1,14 +1,34 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAdminStore } from '../../stores/adminStore';
-import type { AdminPet, AdminPetBaseStatsRange, AdminPetBonusPool, AdminPetGrowthRatesRange, AdminPetSprites, ElementType } from '../../types/admin';
-import { ELEMENTS, ELEMENT_LABELS, ELEMENT_COLORS, STATS, STAT_LABELS } from '../../types/admin';
+import type { AdminPet, AdminPetBaseStatsRange, AdminPetBonusPool, AdminPetGrowthRatesRange, AdminPetSprites, ElementType, GrowthGroup } from '../../types/admin';
+import { ELEMENTS, ELEMENT_LABELS, ELEMENT_LABELS_KR, ELEMENT_COLORS, STATS, STAT_LABELS } from '../../types/admin';
 
 // 숫자 포맷 (0.1 → "0.1", .1 방지)
 const formatNumber = (value: number | undefined | null): string => {
   if (value === undefined || value === null) return '';
   if (value === 0) return '0';
-  return value.toString();
+  // 소수점 이하 불필요한 0 제거하면서 표시
+  return Number(value.toFixed(2)).toString();
+};
+
+// 성장률 기반 성장 그룹 계산 (HP 제외, 최대 9)
+const MAX_GROWTH_RATE_TOTAL = 9; // ATK 3 + DEF 3 + SPD 3
+const calculateGrowthGroupFromRates = (total: number): GrowthGroup => {
+  const percent = (total / MAX_GROWTH_RATE_TOTAL) * 100;
+  if (percent >= 95) return 'S';
+  if (percent >= 85) return 'A';
+  if (percent >= 70) return 'B';
+  if (percent >= 50) return 'C';
+  return 'D';
+};
+
+const GROWTH_GROUP_COLORS: Record<GrowthGroup, string> = {
+  S: 'text-yellow-400',
+  A: 'text-purple-400',
+  B: 'text-blue-400',
+  C: 'text-green-400',
+  D: 'text-gray-400',
 };
 
 // 빈 기본값 (입력 즉시 가능하도록)
@@ -170,40 +190,20 @@ export default function PetManagePage() {
     });
   };
 
-  // 성장률: 기준값 ± 범위 입력 (내부적으로 min/max로 저장)
-  const handleGrowthRateBaseChange = (stat: keyof AdminPetGrowthRatesRange, value: string) => {
-    const baseValue = value === '' ? 0 : parseFloat(value);
-    const currentRange = formData.growthRatesRange[stat];
-    const currentDiff = (currentRange.max - currentRange.min) / 2;
-    const newMin = Math.max(0, baseValue - currentDiff);
-    const newMax = baseValue + currentDiff;
+  // 성장률: min/max 직접 입력
+  const handleGrowthRateChange = (stat: keyof AdminPetGrowthRatesRange, field: 'min' | 'max', value: string) => {
+    const numValue = value === '' ? 0 : parseFloat(value);
+    const newRange = { ...formData.growthRatesRange[stat], [field]: numValue };
     setFormData({
       ...formData,
-      growthRatesRange: { ...formData.growthRatesRange, [stat]: { min: newMin, max: newMax } },
+      growthRatesRange: { ...formData.growthRatesRange, [stat]: newRange },
     });
   };
 
-  const handleGrowthRateRangeChange = (stat: keyof AdminPetGrowthRatesRange, value: string) => {
-    const rangeValue = value === '' ? 0 : parseFloat(value);
-    const currentRange = formData.growthRatesRange[stat];
-    const currentBase = (currentRange.min + currentRange.max) / 2;
-    const newMin = Math.max(0, currentBase - rangeValue);
-    const newMax = currentBase + rangeValue;
-    setFormData({
-      ...formData,
-      growthRatesRange: { ...formData.growthRatesRange, [stat]: { min: newMin, max: newMax } },
-    });
-  };
-
-  // 성장률 기준값과 범위 계산 헬퍼
+  // 성장률 기준값 계산 헬퍼
   const getGrowthRateBase = (stat: keyof AdminPetGrowthRatesRange): number => {
     const range = formData.growthRatesRange[stat];
     return (range.min + range.max) / 2;
-  };
-
-  const getGrowthRateRange = (stat: keyof AdminPetGrowthRatesRange): number => {
-    const range = formData.growthRatesRange[stat];
-    return (range.max - range.min) / 2;
   };
 
   // Validation helpers
@@ -222,11 +222,10 @@ export default function PetManagePage() {
     return value >= 0 && isValidTotalBonusPool;
   };
 
-  const isValidGrowthRate = (stat: keyof AdminPetGrowthRatesRange) => {
-    const base = getGrowthRateBase(stat);
-    const range = getGrowthRateRange(stat);
-    const maxBase = stat === 'hp' ? 20 : 3;
-    return base >= 0 && base <= maxBase && range >= 0;
+  const isValidGrowthRate = (stat: keyof AdminPetGrowthRatesRange, field: 'min' | 'max') => {
+    const value = formData.growthRatesRange[stat][field];
+    const maxValue = stat === 'hp' ? 20 : 3;
+    return value >= 0 && value <= maxValue;
   };
 
   const handleSpriteChange = (motion: keyof AdminPetSprites, url: string) => {
@@ -406,7 +405,7 @@ export default function PetManagePage() {
                       >
                         {ELEMENTS.map((el) => (
                           <option key={el} value={el}>
-                            {ELEMENT_LABELS[el]} ({el})
+                            {ELEMENT_LABELS_KR[el]} ({ELEMENT_LABELS[el]})
                           </option>
                         ))}
                       </select>
@@ -422,7 +421,7 @@ export default function PetManagePage() {
                         <option value="">없음</option>
                         {ELEMENTS.filter((el) => el !== formData.element.primary).map((el) => (
                           <option key={el} value={el}>
-                            {ELEMENT_LABELS[el]} ({el})
+                            {ELEMENT_LABELS_KR[el]} ({ELEMENT_LABELS[el]})
                           </option>
                         ))}
                       </select>
@@ -431,11 +430,11 @@ export default function PetManagePage() {
                       <label className="block text-xs text-gray-400 mb-1">주 속성 비율 (%)</label>
                       <input
                         type="number"
-                        value={formData.element.primaryRatio || ''}
+                        value={formData.element.secondary ? (formData.element.primaryRatio || '') : ''}
                         onChange={(e) => handlePrimaryRatioChange(e.target.value)}
                         disabled={!isEditing || !formData.element.secondary}
                         placeholder="50-100"
-                        className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white disabled:opacity-50 ${
+                        className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white placeholder-gray-500 disabled:opacity-50 ${
                           isEditing && formData.element.secondary && !isValidPrimaryRatio() ? 'border-red-500' : 'border-gray-600'
                         }`}
                       />
@@ -445,27 +444,54 @@ export default function PetManagePage() {
                     <div className={`w-6 h-6 rounded ${ELEMENT_COLORS[formData.element.primary]} flex items-center justify-center text-white text-xs font-bold`}>
                       {ELEMENT_LABELS[formData.element.primary]}
                     </div>
-                    <span className="text-gray-300 text-sm">{formData.element.primaryRatio}%</span>
-                    {formData.element.secondary && (
+                    {formData.element.secondary ? (
                       <>
+                        <span className="text-gray-300 text-sm">{formData.element.primaryRatio || 0}%</span>
                         <span className="text-gray-500">+</span>
                         <div className={`w-6 h-6 rounded ${ELEMENT_COLORS[formData.element.secondary]} flex items-center justify-center text-white text-xs font-bold`}>
                           {ELEMENT_LABELS[formData.element.secondary]}
                         </div>
-                        <span className="text-gray-300 text-sm">{100 - formData.element.primaryRatio}%</span>
+                        <span className="text-gray-300 text-sm">{100 - (formData.element.primaryRatio || 0)}%</span>
                       </>
-                    )}
+                    ) : null}
                   </div>
                 </div>
 
-                {/* Growth Group Info */}
+                {/* Growth Group Preview */}
                 <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-gray-300">성장 그룹:</span>
-                    <span className="text-sm text-yellow-400">
-                      페트 생성 시 랜덤 부여됨
-                    </span>
+                  <div className="text-sm font-medium text-gray-300 mb-3">성장 그룹 미리보기 (성장률 기준)</div>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="text-center">
+                      <div className="text-gray-400 mb-1">최소 성장률</div>
+                      <div className={`text-lg font-bold ${GROWTH_GROUP_COLORS[calculateGrowthGroupFromRates(growthRateTotals.minus)]}`}>
+                        {calculateGrowthGroupFromRates(growthRateTotals.minus)}등급
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {formatNumber(growthRateTotals.minus)} / 9 ({formatNumber((growthRateTotals.minus / MAX_GROWTH_RATE_TOTAL) * 100)}%)
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-gray-400 mb-1">기준 성장률</div>
+                      <div className={`text-lg font-bold ${GROWTH_GROUP_COLORS[calculateGrowthGroupFromRates(growthRateTotals.base)]}`}>
+                        {calculateGrowthGroupFromRates(growthRateTotals.base)}등급
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {formatNumber(growthRateTotals.base)} / 9 ({formatNumber((growthRateTotals.base / MAX_GROWTH_RATE_TOTAL) * 100)}%)
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-gray-400 mb-1">최대 성장률</div>
+                      <div className={`text-lg font-bold ${GROWTH_GROUP_COLORS[calculateGrowthGroupFromRates(growthRateTotals.plus)]}`}>
+                        {calculateGrowthGroupFromRates(growthRateTotals.plus)}등급
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {formatNumber(growthRateTotals.plus)} / 9 ({formatNumber((growthRateTotals.plus / MAX_GROWTH_RATE_TOTAL) * 100)}%)
+                      </div>
+                    </div>
                   </div>
+                  <p className="mt-3 text-xs text-gray-500">
+                    * 성장 그룹 기준: S(95%↑) / A(85%↑) / B(70%↑) / C(50%↑) / D(50%↓) - HP 제외 성장률 총합 기준
+                  </p>
                 </div>
 
                 {/* Capture Rate Info */}
@@ -540,16 +566,16 @@ export default function PetManagePage() {
                   </div>
                 </div>
 
-                {/* Growth Rates (기준값 ± 범위) */}
+                {/* Growth Rates (최소 / 최대) */}
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <label className="block text-sm font-medium text-gray-300">성장률 (기준값 ± 범위)</label>
+                    <label className="block text-sm font-medium text-gray-300">성장률 (최소 / 최대)</label>
                     <div className="flex items-center gap-4 text-sm">
-                      <span className="text-red-400">-{formatNumber(growthRateTotals.minus)}</span>
+                      <span className="text-red-400">{formatNumber(growthRateTotals.minus)}</span>
                       <span className="text-gray-300">/</span>
                       <span className="text-yellow-400">{formatNumber(growthRateTotals.base)}</span>
                       <span className="text-gray-300">/</span>
-                      <span className="text-green-400">+{formatNumber(growthRateTotals.plus)}</span>
+                      <span className="text-green-400">{formatNumber(growthRateTotals.plus)}</span>
                       <span className="text-gray-500 text-xs">(HP 제외 총합)</span>
                     </div>
                   </div>
@@ -561,28 +587,28 @@ export default function PetManagePage() {
                           <input
                             type="number"
                             step="0.1"
-                            value={getGrowthRateBase(stat) || ''}
-                            onChange={(e) => handleGrowthRateBaseChange(stat, e.target.value)}
+                            value={formData.growthRatesRange[stat].min || ''}
+                            onChange={(e) => handleGrowthRateChange(stat, 'min', e.target.value)}
                             disabled={!isEditing}
-                            placeholder="기준값"
+                            placeholder="최소"
                             className={`flex-1 px-3 py-2 bg-gray-700 border rounded-lg text-white disabled:opacity-50 ${
-                              isEditing && !isValidGrowthRate(stat) ? 'border-red-500' : 'border-gray-600'
+                              isEditing && !isValidGrowthRate(stat, 'min') ? 'border-red-500' : 'border-gray-600'
                             }`}
                           />
-                          <span className="text-gray-400">±</span>
+                          <span className="text-gray-400">~</span>
                           <input
                             type="number"
                             step="0.1"
-                            value={getGrowthRateRange(stat) || ''}
-                            onChange={(e) => handleGrowthRateRangeChange(stat, e.target.value)}
+                            value={formData.growthRatesRange[stat].max || ''}
+                            onChange={(e) => handleGrowthRateChange(stat, 'max', e.target.value)}
                             disabled={!isEditing}
-                            placeholder="범위"
+                            placeholder="최대"
                             className={`flex-1 px-3 py-2 bg-gray-700 border rounded-lg text-white disabled:opacity-50 ${
-                              isEditing && !isValidGrowthRate(stat) ? 'border-red-500' : 'border-gray-600'
+                              isEditing && !isValidGrowthRate(stat, 'max') ? 'border-red-500' : 'border-gray-600'
                             }`}
                           />
-                          <span className="text-xs text-gray-500 w-24 text-right">
-                            ({formatNumber(formData.growthRatesRange[stat].min)} ~ {formatNumber(formData.growthRatesRange[stat].max)})
+                          <span className="text-xs text-gray-500 w-16 text-right">
+                            ({formatNumber(getGrowthRateBase(stat))})
                           </span>
                         </div>
                       </div>
