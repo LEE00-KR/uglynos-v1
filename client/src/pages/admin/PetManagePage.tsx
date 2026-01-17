@@ -12,15 +12,13 @@ const formatNumber = (value: number | undefined | null): string => {
   return Number(value.toFixed(2)).toString();
 };
 
-// 성장률 기반 성장 그룹 계산 (HP 제외, 최대 9)
-const MAX_GROWTH_RATE_TOTAL = 9; // ATK 3 + DEF 3 + SPD 3
-const calculateGrowthGroupFromRates = (total: number): GrowthGroup => {
-  const percent = (total / MAX_GROWTH_RATE_TOTAL) * 100;
-  if (percent >= 95) return 'S';
-  if (percent >= 85) return 'A';
-  if (percent >= 70) return 'B';
-  if (percent >= 50) return 'C';
-  return 'D';
+// 성장 그룹별 배수 (포획 시 랜덤 부여)
+const GROWTH_GROUP_MULTIPLIERS: Record<GrowthGroup, number> = {
+  S: 1.0,
+  A: 0.9,
+  B: 0.8,
+  C: 0.7,
+  D: 0.6,
 };
 
 const GROWTH_GROUP_COLORS: Record<GrowthGroup, string> = {
@@ -30,6 +28,8 @@ const GROWTH_GROUP_COLORS: Record<GrowthGroup, string> = {
   C: 'text-green-400',
   D: 'text-gray-400',
 };
+
+const GROWTH_GROUPS_LIST: GrowthGroup[] = ['S', 'A', 'B', 'C', 'D'];
 
 // 빈 기본값 (입력 즉시 가능하도록)
 const defaultPet: Omit<AdminPet, 'createdAt' | 'updatedAt'> = {
@@ -457,40 +457,62 @@ export default function PetManagePage() {
                   </div>
                 </div>
 
-                {/* Growth Group Preview */}
+                {/* Growth Group Preview - 등급별 실제 성장률 */}
                 <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
-                  <div className="text-sm font-medium text-gray-300 mb-3">성장 그룹 미리보기 (성장률 기준)</div>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div className="text-center">
-                      <div className="text-gray-400 mb-1">최소 성장률</div>
-                      <div className={`text-lg font-bold ${GROWTH_GROUP_COLORS[calculateGrowthGroupFromRates(growthRateTotals.minus)]}`}>
-                        {calculateGrowthGroupFromRates(growthRateTotals.minus)}등급
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {formatNumber(growthRateTotals.minus)} / 9 ({formatNumber((growthRateTotals.minus / MAX_GROWTH_RATE_TOTAL) * 100)}%)
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-gray-400 mb-1">기준 성장률</div>
-                      <div className={`text-lg font-bold ${GROWTH_GROUP_COLORS[calculateGrowthGroupFromRates(growthRateTotals.base)]}`}>
-                        {calculateGrowthGroupFromRates(growthRateTotals.base)}등급
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {formatNumber(growthRateTotals.base)} / 9 ({formatNumber((growthRateTotals.base / MAX_GROWTH_RATE_TOTAL) * 100)}%)
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-gray-400 mb-1">최대 성장률</div>
-                      <div className={`text-lg font-bold ${GROWTH_GROUP_COLORS[calculateGrowthGroupFromRates(growthRateTotals.plus)]}`}>
-                        {calculateGrowthGroupFromRates(growthRateTotals.plus)}등급
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {formatNumber(growthRateTotals.plus)} / 9 ({formatNumber((growthRateTotals.plus / MAX_GROWTH_RATE_TOTAL) * 100)}%)
-                      </div>
-                    </div>
+                  <div className="text-sm font-medium text-gray-300 mb-3">
+                    성장 그룹 미리보기 <span className="text-gray-500 font-normal">(포획 시 랜덤 부여)</span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-gray-400 border-b border-gray-600">
+                          <th className="text-left py-2 pr-4">등급</th>
+                          <th className="text-center py-2 px-2">배수</th>
+                          <th className="text-center py-2 px-2">HP</th>
+                          <th className="text-center py-2 px-2">ATK</th>
+                          <th className="text-center py-2 px-2">DEF</th>
+                          <th className="text-center py-2 px-2">SPD</th>
+                          <th className="text-center py-2 pl-2">총합 (HP제외)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {GROWTH_GROUPS_LIST.map((group) => {
+                          const mult = GROWTH_GROUP_MULTIPLIERS[group];
+                          const effectiveRates = {
+                            hp: { min: formData.growthRatesRange.hp.min * mult, max: formData.growthRatesRange.hp.max * mult },
+                            atk: { min: formData.growthRatesRange.atk.min * mult, max: formData.growthRatesRange.atk.max * mult },
+                            def: { min: formData.growthRatesRange.def.min * mult, max: formData.growthRatesRange.def.max * mult },
+                            spd: { min: formData.growthRatesRange.spd.min * mult, max: formData.growthRatesRange.spd.max * mult },
+                          };
+                          const totalMin = effectiveRates.atk.min + effectiveRates.def.min + effectiveRates.spd.min;
+                          const totalMax = effectiveRates.atk.max + effectiveRates.def.max + effectiveRates.spd.max;
+                          return (
+                            <tr key={group} className="border-b border-gray-700 last:border-b-0">
+                              <td className={`py-2 pr-4 font-bold ${GROWTH_GROUP_COLORS[group]}`}>{group}등급</td>
+                              <td className="text-center py-2 px-2 text-gray-400">×{mult}</td>
+                              <td className="text-center py-2 px-2 text-gray-300">
+                                {formatNumber(effectiveRates.hp.min)}~{formatNumber(effectiveRates.hp.max)}
+                              </td>
+                              <td className="text-center py-2 px-2 text-gray-300">
+                                {formatNumber(effectiveRates.atk.min)}~{formatNumber(effectiveRates.atk.max)}
+                              </td>
+                              <td className="text-center py-2 px-2 text-gray-300">
+                                {formatNumber(effectiveRates.def.min)}~{formatNumber(effectiveRates.def.max)}
+                              </td>
+                              <td className="text-center py-2 px-2 text-gray-300">
+                                {formatNumber(effectiveRates.spd.min)}~{formatNumber(effectiveRates.spd.max)}
+                              </td>
+                              <td className="text-center py-2 pl-2 text-gray-300">
+                                {formatNumber(totalMin)}~{formatNumber(totalMax)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                   <p className="mt-3 text-xs text-gray-500">
-                    * 성장 그룹 기준: S(95%↑) / A(85%↑) / B(70%↑) / C(50%↑) / D(50%↓) - HP 제외 성장률 총합 기준
+                    * 포획 시 S~D 등급 중 하나가 랜덤 부여되며, 레벨업 시 성장률 × 배수만큼 스탯 증가
                   </p>
                 </div>
 
