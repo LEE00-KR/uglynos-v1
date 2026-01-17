@@ -15,9 +15,10 @@ export interface ElementConfig {
 // Pet Types (4스텟: 체력, 공격력, 방어력, 순발력)
 // =====================================================
 
-// 스탯 범위 (min ~ max)
+// 스탯 범위 (min / base / max)
 export interface StatRange {
   min: number;
+  base: number;
   max: number;
 }
 
@@ -29,20 +30,12 @@ export interface AdminPetBaseStatsRange {
   spd: StatRange;  // 순발력 범위 (1-100)
 }
 
-// 보너스 풀 (Species 템플릿용)
-export interface AdminPetBonusPool {
-  hp: number;   // HP 보너스 풀 (0-50)
-  atk: number;  // ATK 보너스 풀 (0-10)
-  def: number;  // DEF 보너스 풀 (0-10)
-  spd: number;  // SPD 보너스 풀 (0-10)
-}
-
 // 성장률 범위 (Species 템플릿용)
 export interface AdminPetGrowthRatesRange {
-  hp: StatRange;   // 1.00-3.00
-  atk: StatRange;  // 1.00-3.00
-  def: StatRange;  // 1.00-3.00
-  spd: StatRange;  // 1.00-3.00
+  hp: StatRange;   // HP 성장률 범위
+  atk: StatRange;  // ATK 성장률 범위
+  def: StatRange;  // DEF 성장률 범위
+  spd: StatRange;  // SPD 성장률 범위
 }
 
 // 고정 스탯 (레거시 호환용)
@@ -61,15 +54,8 @@ export interface AdminPetGrowthRates {
   spd: number;  // 1.00-3.00
 }
 
-// 성장 그룹 타입 (S++/S+ 추가, 확률 기반 + 범위)
+// 성장 그룹 타입 (S++/S+ 추가, 확률 기반)
 export type GrowthGroup = 'S++' | 'S+' | 'S' | 'A' | 'B' | 'C' | 'D';
-
-// 스탯 범위 (min / base / max)
-export interface StatRange {
-  min: number;
-  base: number;
-  max: number;
-}
 
 export interface AdminPetSprites {
   idle: string;
@@ -84,12 +70,9 @@ export interface AdminPet {
   id: string;
   name: string;
   element: ElementConfig;
-  // Species 템플릿 (범위 기반)
+  // Species 템플릿 (min/base/max 기반)
   baseStatsRange: AdminPetBaseStatsRange;
-  bonusPool: AdminPetBonusPool;
   growthRatesRange: AdminPetGrowthRatesRange;
-  // 총합 스탯 (자동 계산용)
-  totalStats: number;
   // 스프라이트
   sprites: AdminPetSprites;
   skills: string[];  // skill IDs
@@ -251,7 +234,6 @@ export interface CreateAdminPetRequest {
   name: string;
   element: ElementConfig;
   baseStatsRange: AdminPetBaseStatsRange;
-  bonusPool: AdminPetBonusPool;
   growthRatesRange: AdminPetGrowthRatesRange;
   sprites: AdminPetSprites;
   skills: string[];

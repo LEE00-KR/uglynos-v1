@@ -312,16 +312,16 @@ export const STAT_LABELS: Record<string, string> = {
 
 // 성장 그룹 설정 (확률 기반 + 범위)
 // 100마리 포획 시: S++=0.4마리, S+=1마리, S=2마리, A=10마리, B=50마리, C=25마리, D=11.6마리
-// 각 그룹 내에서 배수 범위가 있어 무작위 성장계수 적용
+// 기준 성장률 대비 차이: S++: +0.2, S+: +0.1, S: +0.05, A: 동급, B: -0.1~0.2, C: -0.3, D: -0.5+
 
 export const GROWTH_GROUPS: GrowthGroupConfig[] = [
-  { group: 'S++', probability: 0.4, multiplier: 1.10, multiplierMin: 1.08, multiplierMax: 1.12, label: '전설' },
-  { group: 'S+',  probability: 1.0, multiplier: 1.05, multiplierMin: 1.03, multiplierMax: 1.07, label: '영웅' },
-  { group: 'S',   probability: 2.0, multiplier: 1.00, multiplierMin: 0.98, multiplierMax: 1.02, label: '최상' },
-  { group: 'A',   probability: 10.0, multiplier: 0.95, multiplierMin: 0.93, multiplierMax: 0.97, label: '상' },
-  { group: 'B',   probability: 50.0, multiplier: 0.90, multiplierMin: 0.88, multiplierMax: 0.92, label: '중' },
-  { group: 'C',   probability: 25.0, multiplier: 0.85, multiplierMin: 0.83, multiplierMax: 0.87, label: '하' },
-  { group: 'D',   probability: 11.6, multiplier: 0.80, multiplierMin: 0.78, multiplierMax: 0.82, label: '최하' },
+  { group: 'S++', probability: 0.4, multiplier: 1.04, multiplierMin: 1.03, multiplierMax: 1.05, label: 'S++' },
+  { group: 'S+',  probability: 1.0, multiplier: 1.02, multiplierMin: 1.01, multiplierMax: 1.03, label: 'S+' },
+  { group: 'S',   probability: 2.0, multiplier: 1.01, multiplierMin: 1.00, multiplierMax: 1.02, label: 'S' },
+  { group: 'A',   probability: 10.0, multiplier: 1.00, multiplierMin: 0.99, multiplierMax: 1.01, label: 'A' },
+  { group: 'B',   probability: 50.0, multiplier: 0.97, multiplierMin: 0.95, multiplierMax: 0.99, label: 'B' },
+  { group: 'C',   probability: 25.0, multiplier: 0.94, multiplierMin: 0.92, multiplierMax: 0.96, label: 'C' },
+  { group: 'D',   probability: 11.6, multiplier: 0.90, multiplierMin: 0.88, multiplierMax: 0.92, label: 'D' },
 ];
 
 export const GROWTH_GROUP_LABELS: Record<GrowthGroup, string> = {

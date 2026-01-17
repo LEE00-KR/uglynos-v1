@@ -5,15 +5,16 @@
 // ============================================
 // 성장 그룹 설정 (확률 기반)
 // 100마리 포획 시: S++=0.4, S+=1, S=2, A=10, B=50, C=25, D=11.6
+// 기준 성장률 대비: S++: +0.2, S+: +0.1, S: +0.05, A: 동급, B: -0.1~0.2, C: -0.3, D: -0.5+
 // ============================================
 export const GROWTH_GROUPS = {
-  'S++': { probability: 0.4, multiplier: 1.1, stars: 5, color: '#FF00FF', label: '전설' },
-  'S+':  { probability: 1.0, multiplier: 1.05, stars: 4, color: '#FF4500', label: '영웅' },
-  'S':   { probability: 2.0, multiplier: 1.0, stars: 3, color: '#FFD700', label: '최상' },
-  'A':   { probability: 10.0, multiplier: 0.95, stars: 2, color: '#C0C0C0', label: '상' },
-  'B':   { probability: 50.0, multiplier: 0.9, stars: 1, color: '#CD7F32', label: '중' },
-  'C':   { probability: 25.0, multiplier: 0.85, stars: 0, color: '#808080', label: '하' },
-  'D':   { probability: 11.6, multiplier: 0.8, stars: 0, color: '#404040', label: '최하' },
+  'S++': { probability: 0.4, multiplier: 1.04, multiplierMin: 1.03, multiplierMax: 1.05, stars: 5, color: '#FF00FF', label: 'S++' },
+  'S+':  { probability: 1.0, multiplier: 1.02, multiplierMin: 1.01, multiplierMax: 1.03, stars: 4, color: '#FF4500', label: 'S+' },
+  'S':   { probability: 2.0, multiplier: 1.01, multiplierMin: 1.00, multiplierMax: 1.02, stars: 3, color: '#FFD700', label: 'S' },
+  'A':   { probability: 10.0, multiplier: 1.00, multiplierMin: 0.99, multiplierMax: 1.01, stars: 2, color: '#C0C0C0', label: 'A' },
+  'B':   { probability: 50.0, multiplier: 0.97, multiplierMin: 0.95, multiplierMax: 0.99, stars: 1, color: '#CD7F32', label: 'B' },
+  'C':   { probability: 25.0, multiplier: 0.94, multiplierMin: 0.92, multiplierMax: 0.96, stars: 0, color: '#808080', label: 'C' },
+  'D':   { probability: 11.6, multiplier: 0.90, multiplierMin: 0.88, multiplierMax: 0.92, stars: 0, color: '#404040', label: 'D' },
 } as const;
 
 export type GrowthGroup = keyof typeof GROWTH_GROUPS;
