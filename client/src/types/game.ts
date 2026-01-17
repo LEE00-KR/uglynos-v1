@@ -1,6 +1,6 @@
 // =====================================================
+// 클라이언트 게임 타입 (서버와 동기화)
 // 4스탯 시스템 + 기력 시스템
-// 어드민 스키마 기준으로 통일
 // =====================================================
 
 // Element types
@@ -37,10 +37,9 @@ export interface GrowthRates {
 export type GrowthGroup = 'S' | 'A' | 'B' | 'C' | 'D';
 
 // =====================================================
-// 전투 유닛 (캐릭터/펫/적)
+// 상태이상 (9가지)
 // =====================================================
 
-// Status effect types (9가지)
 export type StatusEffectType =
   | 'poison'     // 독: 턴마다 HP 5-10% 피해
   | 'petrify'    // 석화: 행동 불가, 받는 피해 -20%
@@ -58,47 +57,14 @@ export interface StatusEffect {
   appliedAt: number;
 }
 
-// Weapon types
-export type WeaponType = 'sword' | 'club' | 'axe' | 'spear' | 'claw' | 'bow';
-
-// Equipment slot types
-export type EquipmentSlotType =
-  | 'weapon'
-  | 'armor'
-  | 'helmet'
-  | 'bracelet'
-  | 'necklace';
-
-// 장비 정보
-export interface EquipmentInfo {
-  id: string;
-  templateId: string;  // string으로 통일
-  slotType: EquipmentSlotType;
-  weaponType?: WeaponType;
-  stats: BaseStats;  // 4스탯
-  attackRatio: number;
-  accuracy: number;
-  hitCount: number;
-  durability: number;
-  spellId?: string;
-}
-
-// 펫 스킬
-export interface PetSkill {
-  id: string;  // string으로 통일
-  name: string;
-  element?: ElementType;
-  damageRatio?: number;
-  effectType: string;
-  targetType: string;
-  energyCost: number;  // mp → energy (기력)
-}
-
+// =====================================================
 // 전투 유닛
+// =====================================================
+
 export interface BattleUnit {
   id: string;
   type: 'character' | 'pet' | 'enemy';
-  templateId?: string;  // string으로 통일 (admin_pets.id)
+  templateId?: string;
   ownerId?: string;
   name: string;
   level: number;
@@ -107,9 +73,9 @@ export interface BattleUnit {
   hp: number;
   maxHp: number;
 
-  // 기력 (캐릭터만 사용, 고정 100)
+  // 기력 (캐릭터만, 고정 100)
   energy: number;
-  maxEnergy: number;  // 항상 100
+  maxEnergy: number;
 
   // 4스탯
   stats: BaseStats;
@@ -120,17 +86,8 @@ export interface BattleUnit {
   // 상태이상
   statusEffects: StatusEffect[];
 
-  // 장비 (캐릭터만)
-  equipment?: EquipmentInfo;
-
-  // 스킬 (펫/적)
-  skills?: PetSkill[];
-
   // 펫 전용
   loyalty?: number;
-  isRiding?: boolean;
-  isRepresentative?: boolean;
-  ridingPetId?: string;
   growthGroup?: GrowthGroup;
   growthRates?: GrowthRates;
 
@@ -167,77 +124,15 @@ export interface BattleAction {
 }
 
 // =====================================================
-// 전투 상태
-// =====================================================
-
-export interface Drop {
-  itemType: 'material' | 'equipment' | 'consumable';
-  itemId: string;  // string으로 통일
-  quantity: number;
-}
-
-export interface BattleState {
-  id: string;
-  stageId: string;  // string으로 통일 (admin_stages.id)
-  phase: 'waiting' | 'in_progress' | 'victory' | 'defeat' | 'fled';
-  turnNumber: number;
-  units: Map<string, BattleUnit>;
-  turnOrder: string[];
-  currentTurnIndex: number;
-  pendingActions: Map<string, BattleAction>;
-  partyId?: string;
-  participants: string[];
-  turnStartedAt: number;
-  turnTimeout: number;
-  potentialDrops: Drop[];
-  createdAt: number;
-  updatedAt: number;
-}
-
-// =====================================================
-// 데미지 계산
-// =====================================================
-
-export interface DamageOptions {
-  weaponInfo?: EquipmentInfo;
-  attackElement?: ElementInfo;
-  critChance?: number;
-  gangUpBonus?: number;
-}
-
-export interface DamageResult {
-  damage: number;
-  isCritical: boolean;
-  elementMultiplier: number;
-  statusWeaknessMultiplier: number;
-  wasDefending: boolean;
-}
-
-// =====================================================
-// 전투 보상
+// 전투 결과
 // =====================================================
 
 export interface BattleRewards {
-  exp: ExpReward[];
+  exp: { characterId: string; exp: number }[];
   gold: number;
-  drops: DroppedItem[];
+  drops: { itemType: string; itemId: string; quantity: number }[];
   stars: number;
 }
-
-export interface ExpReward {
-  characterId: string;
-  exp: number;
-}
-
-export interface DroppedItem {
-  itemType: 'material' | 'equipment' | 'consumable';
-  itemId: string;  // string으로 통일
-  quantity: number;
-}
-
-// =====================================================
-// 포획 결과
-// =====================================================
 
 export interface CaptureResult {
   success: boolean;
@@ -245,16 +140,6 @@ export interface CaptureResult {
   roll?: number;
   isRareColor?: boolean;
   reason?: string;
-}
-
-// =====================================================
-// 불순종 (펫 충성도)
-// =====================================================
-
-export interface DisobeyResult {
-  disobeyed: boolean;
-  action?: string;
-  message?: string;
 }
 
 // =====================================================
@@ -273,3 +158,79 @@ export const calculateEvasionRate = (spd: number): number => {
 
 export const MAX_ENERGY = 100;  // 캐릭터 기력 고정값
 export const DEFAULT_ENERGY = 100;
+
+// =====================================================
+// 캐릭터 타입
+// =====================================================
+
+export interface Character {
+  id: string;
+  userId: string;
+  nickname: string;
+  level: number;
+  exp: number;
+  gold: number;
+
+  // 외형
+  appearance: {
+    eye: number;
+    nose: number;
+    mouth: number;
+    hair: number;
+    skin: number;
+  };
+
+  // 속성
+  element: ElementInfo;
+
+  // 4스탯
+  stats: BaseStats;
+  statPoints: number;
+
+  // 현재 상태 (자동 회복 없음)
+  currentHp: number;
+  currentEnergy: number;
+
+  // 탑승 펫
+  ridingPetId?: string;
+}
+
+// =====================================================
+// 펫 타입
+// =====================================================
+
+export interface Pet {
+  id: string;
+  characterId: string;
+  templateId: string;
+  templateName: string;
+  nickname?: string;
+  level: number;
+  exp: number;
+  expToNextLevel: number;
+
+  // 4스탯
+  stats: BaseStats;
+
+  // 성장률
+  growthRates: GrowthRates;
+
+  // 성장 그룹
+  growthGroup: GrowthGroup;
+
+  // 현재 HP (자동 회복 없음)
+  currentHp: number;
+  maxHp: number;
+
+  // 충성도
+  loyalty: number;
+
+  // 기타
+  isRareColor: boolean;
+  isStarter: boolean;
+  partySlot?: number;
+  isRiding: boolean;
+
+  // 속성
+  element: ElementInfo;
+}

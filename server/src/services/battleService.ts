@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { redis, REDIS_KEYS } from '../config/redis.js';
 import { supabase } from '../config/database.js';
 import { NotFoundError, BattleError } from '../utils/errors.js';
-import { calculateDerivedStats } from '../utils/formulas.js';
+import { DEFAULT_ENERGY, MAX_ENERGY } from '../utils/formulas.js';
 import { turnManager } from './battle/turnManager.js';
 import { damageCalculator } from './battle/damageCalculator.js';
 import { statusEffectManager } from './battle/statusEffectManager.js';
@@ -20,7 +20,7 @@ import type {
 const TURN_TIMEOUT = 30000;
 
 interface StartBattleInput {
-  stageId: number;
+  stageId: string;  // string으로 변경 (admin_stages.id)
   partyPetIds?: string[];
   ridingPetId?: string | null;
 }
@@ -30,9 +30,8 @@ interface BattleActionInput {
   actorId: string;
   type: string;
   targetId?: string;
-  spellId?: number;
+  skillId?: string;
   itemId?: string;
-  skillId?: number;
 }
 
 interface ActionResult {
@@ -64,7 +63,7 @@ interface TurnResult {
   unitUpdates: Map<string, Partial<BattleUnit>>;
   defeatedUnits: string[];
   capturedPet?: {
-    templateId: number;
+    templateId: string;  // string으로 변경
     name: string;
     isRareColor: boolean;
   };
@@ -77,7 +76,7 @@ class BattleService {
   async startBattle(characterId: string, input: StartBattleInput): Promise<BattleState> {
     const battleId = uuidv4();
 
-    // Load character
+    // Load character (4스탯 시스템)
     const { data: character } = await supabase
       .from('characters')
       .select('*')
@@ -86,16 +85,16 @@ class BattleService {
 
     if (!character) throw new NotFoundError('캐릭터');
 
-    // Load stage
+    // Load stage from admin_stages
     const { data: stage } = await supabase
-      .from('stage_templates')
+      .from('admin_stages')
       .select('*')
       .eq('id', input.stageId)
       .single();
 
     if (!stage) throw new NotFoundError('스테이지');
 
-    // Load pets (only if provided)
+    // Load pets with admin_pets template
     const petIds = input.partyPetIds && input.partyPetIds.length > 0
       ? input.partyPetIds
       : [];
@@ -104,48 +103,43 @@ class BattleService {
     if (petIds.length > 0) {
       const { data } = await supabase
         .from('pets')
-        .select('*, pet_templates (*)')
+        .select(`
+          *,
+          admin_pets (
+            id,
+            name,
+            element_primary,
+            element_secondary,
+            element_primary_ratio,
+            capture_rate
+          )
+        `)
         .in('id', petIds);
       pets = data || [];
     }
 
-    // Load monsters
-    const { data: stageMonsters } = await supabase
-      .from('stage_monsters')
-      .select('*, monster_templates (*)')
-      .eq('stage_id', input.stageId)
-      .eq('wave_number', 1);
-
     // Create units map
     const units = new Map<string, BattleUnit>();
 
-    // Character unit
-    const charStats = calculateDerivedStats(
-      {
-        str: character.stat_str,
-        agi: character.stat_agi,
-        vit: character.stat_vit,
-        con: character.stat_con,
-        int: character.stat_int,
-      },
-      character.level
-    );
+    // Character unit (4스탯 직접 사용)
+    const charMaxHp = character.stat_hp;
+    const charHp = character.current_hp ?? charMaxHp;
+    const charEnergy = character.current_energy ?? DEFAULT_ENERGY;
 
     units.set(characterId, {
       id: characterId,
       type: 'character',
       name: character.nickname,
       level: character.level,
-      hp: character.current_hp || charStats.maxHp,
-      maxHp: charStats.maxHp,
-      mp: character.current_mp || charStats.maxMp,
-      maxMp: charStats.maxMp,
+      hp: charHp,
+      maxHp: charMaxHp,
+      energy: charEnergy,
+      maxEnergy: MAX_ENERGY,  // 항상 100 고정
       stats: {
-        atk: charStats.atk,
-        def: charStats.def,
-        spd: charStats.spd,
-        eva: charStats.eva,
-        int: character.stat_int,
+        hp: character.stat_hp,
+        atk: character.stat_atk,
+        def: character.stat_def,
+        spd: character.stat_spd,
       },
       element: {
         primary: character.element_primary as ElementType,
@@ -157,44 +151,43 @@ class BattleService {
       isDefending: false,
     });
 
-    // Pet units
+    // Pet units (4스탯)
     for (const pet of pets) {
-      const petStats = calculateDerivedStats(
-        {
-          str: pet.stat_str,
-          agi: pet.stat_agi,
-          vit: pet.stat_vit,
-          con: pet.stat_con,
-          int: pet.stat_int,
-        },
-        pet.level
-      );
+      const template = pet.admin_pets;
+      const petMaxHp = pet.stat_hp;
+      const petHp = pet.current_hp ?? petMaxHp;
 
       units.set(pet.id, {
         id: pet.id,
         type: 'pet',
         templateId: pet.template_id,
         ownerId: characterId,
-        name: pet.nickname || pet.pet_templates.name,
+        name: pet.nickname || template?.name || 'Unknown',
         level: pet.level,
-        hp: pet.current_hp || petStats.maxHp,
-        maxHp: petStats.maxHp,
-        mp: pet.current_mp || petStats.maxMp,
-        maxMp: petStats.maxMp,
+        hp: petHp,
+        maxHp: petMaxHp,
+        energy: 0,  // 펫은 기력 사용 안함
+        maxEnergy: 0,
         stats: {
-          atk: petStats.atk,
-          def: petStats.def,
-          spd: petStats.spd,
-          eva: petStats.eva,
-          int: pet.stat_int,
+          hp: pet.stat_hp,
+          atk: pet.stat_atk,
+          def: pet.stat_def,
+          spd: pet.stat_spd,
         },
         element: {
-          primary: pet.pet_templates.element_primary as ElementType,
-          secondary: pet.pet_templates.element_secondary as ElementType | undefined,
-          primaryRatio: pet.pet_templates.element_primary_ratio,
+          primary: (template?.element_primary || 'earth') as ElementType,
+          secondary: template?.element_secondary as ElementType | undefined,
+          primaryRatio: template?.element_primary_ratio || 100,
         },
         statusEffects: [],
         loyalty: pet.loyalty,
+        growthGroup: pet.growth_group,
+        growthRates: {
+          hp: pet.growth_hp,
+          atk: pet.growth_atk,
+          def: pet.growth_def,
+          spd: pet.growth_spd,
+        },
         isAlive: true,
         isDefending: false,
         isRepresentative: pet.is_representative || false,
@@ -202,52 +195,96 @@ class BattleService {
       });
     }
 
-    // Enemy units
-    if (stageMonsters) {
-      for (const sm of stageMonsters) {
-        const m = sm.monster_templates;
-        const lvl =
-          stage.monster_level_min +
-          Math.floor(Math.random() * (stage.monster_level_max - stage.monster_level_min + 1));
-        const count =
-          sm.spawn_count_min +
-          Math.floor(Math.random() * (sm.spawn_count_max - sm.spawn_count_min + 1));
+    // Enemy units from stage.monsters (JSONB)
+    const monsters = stage.monsters || [];
+    for (const monster of monsters) {
+      // monster: { petId, slot, level, stats, skills }
+      const { data: petTemplate } = await supabase
+        .from('admin_pets')
+        .select('*')
+        .eq('id', monster.petId)
+        .single();
 
-        for (let i = 0; i < count; i++) {
-          const eid = uuidv4();
-          const hp = m.base_hp + m.growth_hp * (lvl - 1);
-          const mp = m.base_mp + m.growth_mp * (lvl - 1);
+      if (!petTemplate) continue;
 
-          units.set(eid, {
-            id: eid,
-            type: 'enemy',
-            templateId: m.id,
-            name: m.name,
-            level: lvl,
-            hp,
-            maxHp: hp,
-            mp,
-            maxMp: mp,
-            stats: {
-              atk: m.base_str + m.growth_str * (lvl - 1),
-              def: m.base_con + m.growth_con * (lvl - 1),
-              spd: m.base_agi + m.growth_agi * (lvl - 1),
-              eva: m.base_agi * 0.2,
-              int: m.base_int + (m.growth_int || 0) * (lvl - 1),
-            },
-            element: {
-              primary: m.element_primary as ElementType,
-              secondary: m.element_secondary as ElementType | undefined,
-              primaryRatio: m.element_primary_ratio,
-            },
-            statusEffects: [],
-            isCapturable: m.linked_pet_id !== null && lvl === 1,
-            isRareColor: Math.random() < 0.03,
-            isAlive: true,
-            isDefending: false,
-          });
-        }
-      }
+      const eid = uuidv4();
+      const monsterHp = monster.stats?.hp || petTemplate.base_hp_min;
+
+      units.set(eid, {
+        id: eid,
+        type: 'enemy',
+        templateId: petTemplate.id,
+        name: petTemplate.name,
+        level: monster.level || 1,
+        hp: monsterHp,
+        maxHp: monsterHp,
+        energy: 0,
+        maxEnergy: 0,
+        stats: {
+          hp: monster.stats?.hp || petTemplate.base_hp_min,
+          atk: monster.stats?.atk || petTemplate.base_atk_min,
+          def: monster.stats?.def || petTemplate.base_def_min,
+          spd: monster.stats?.spd || petTemplate.base_spd_min,
+        },
+        element: {
+          primary: petTemplate.element_primary as ElementType,
+          secondary: petTemplate.element_secondary as ElementType | undefined,
+          primaryRatio: petTemplate.element_primary_ratio || 100,
+        },
+        statusEffects: [],
+        isCapturable: monster.level === 1,  // 레벨 1만 포획 가능
+        captureRate: petTemplate.capture_rate || 50,
+        isRareColor: Math.random() < 0.03,  // 3% 희귀 색상
+        isAlive: true,
+        isDefending: false,
+      });
+    }
+
+    // Wild pets from stage.wild_pets (JSONB) - 야생 펫 스폰
+    const wildPets = stage.wild_pets || [];
+    for (const wild of wildPets) {
+      // wild: { petId, spawnRate }
+      if (Math.random() * 100 > wild.spawnRate) continue;
+
+      const { data: petTemplate } = await supabase
+        .from('admin_pets')
+        .select('*')
+        .eq('id', wild.petId)
+        .single();
+
+      if (!petTemplate) continue;
+
+      const eid = uuidv4();
+      const wildHp = petTemplate.base_hp_min;
+
+      units.set(eid, {
+        id: eid,
+        type: 'enemy',
+        templateId: petTemplate.id,
+        name: petTemplate.name,
+        level: 1,  // 야생 펫은 항상 레벨 1
+        hp: wildHp,
+        maxHp: wildHp,
+        energy: 0,
+        maxEnergy: 0,
+        stats: {
+          hp: petTemplate.base_hp_min,
+          atk: petTemplate.base_atk_min,
+          def: petTemplate.base_def_min,
+          spd: petTemplate.base_spd_min,
+        },
+        element: {
+          primary: petTemplate.element_primary as ElementType,
+          secondary: petTemplate.element_secondary as ElementType | undefined,
+          primaryRatio: petTemplate.element_primary_ratio || 100,
+        },
+        statusEffects: [],
+        isCapturable: true,
+        captureRate: petTemplate.capture_rate || 50,
+        isRareColor: Math.random() < 0.03,
+        isAlive: true,
+        isDefending: false,
+      });
     }
 
     const turnOrder = turnManager.calculateTurnOrder(Array.from(units.values()));
@@ -283,10 +320,8 @@ class BattleService {
       throw new BattleError('BATTLE_ALREADY_ENDED', '이미 종료된 전투입니다');
     }
 
-    // Store action for the actor
     const actorUnit = battleState.units.get(input.actorId);
     if (actorUnit?.isAlive) {
-      // Verify ownership for pets
       if (actorUnit.type === 'pet' && actorUnit.ownerId !== characterId) {
         throw new BattleError('BATTLE_NOT_OWNER', '자신의 펫만 조종할 수 있습니다');
       }
@@ -295,9 +330,8 @@ class BattleService {
         actorId: input.actorId,
         type: input.type as BattleAction['type'],
         targetId: input.targetId,
-        spellId: input.spellId,
-        itemId: input.itemId,
         skillId: input.skillId,
+        itemId: input.itemId,
       });
     }
 
@@ -367,12 +401,12 @@ class BattleService {
           const target = battleState.units.get(action.targetId || '');
           if (target) {
             capturedPet = {
-              templateId: target.templateId || 0,
+              templateId: target.templateId || '',
               name: target.name,
               isRareColor: target.isRareColor || false,
             };
 
-            // Save captured pet to DB
+            // Save captured pet to DB (4스탯)
             const characterId = battleState.participants[0];
             const petData = captureManager.createCapturedPet(target, characterId);
             const { error: insertError } = await supabase.from('pets').insert({
@@ -381,19 +415,18 @@ class BattleService {
               nickname: petData.nickname,
               level: petData.level,
               exp: petData.exp,
-              stat_str: petData.stat_str,
-              stat_agi: petData.stat_agi,
-              stat_vit: petData.stat_vit,
-              stat_con: petData.stat_con,
-              stat_int: petData.stat_int,
-              growth_str: petData.growth_str,
-              growth_agi: petData.growth_agi,
-              growth_vit: petData.growth_vit,
-              growth_con: petData.growth_con,
-              growth_int: petData.growth_int,
+              stat_hp: petData.stat_hp,
+              stat_atk: petData.stat_atk,
+              stat_def: petData.stat_def,
+              stat_spd: petData.stat_spd,
+              growth_hp: petData.growth_hp,
+              growth_atk: petData.growth_atk,
+              growth_def: petData.growth_def,
+              growth_spd: petData.growth_spd,
+              growth_group: petData.growthGroup,
               loyalty: petData.loyalty,
               is_rare_color: petData.isRareColor,
-              is_starter: petData.isStarter,
+              is_starter: false,
             });
             if (insertError) {
               console.error('Failed to save captured pet:', insertError);
@@ -401,7 +434,7 @@ class BattleService {
           }
         }
 
-        // Check for flee - execute actual flee logic
+        // Check for flee
         if (action.type === 'flee') {
           const charUnit = battleState.units.get(action.actorId);
           const enemies = Array.from(battleState.units.values()).filter(
@@ -448,11 +481,11 @@ class BattleService {
       });
     }
 
-    // Collect unit updates and defeated units
+    // Collect unit updates
     for (const unit of battleState.units.values()) {
       unitUpdates.set(unit.id, {
         hp: unit.hp,
-        mp: unit.mp,
+        energy: unit.energy,
         isAlive: unit.isAlive,
         statusEffects: unit.statusEffects,
         isDefending: unit.isDefending,
@@ -469,10 +502,13 @@ class BattleService {
       turnManager.advanceTurn(battleState);
     }
 
-    // Calculate rewards on victory
+    // Calculate rewards on victory (체력/기력 회복 없음)
     let rewards: BattleRewards | undefined;
     if (battleState.phase === 'victory') {
       rewards = await this.calculateBattleRewards(battleState);
+
+      // 전투 후 HP/기력 저장 (자동 회복 없음)
+      await this.saveBattleResults(battleState);
     }
 
     await this.saveBattleState(battleId, battleState);
@@ -492,12 +528,33 @@ class BattleService {
     };
   }
 
+  // 전투 결과 저장 (HP/기력 유지, 자동 회복 없음)
+  private async saveBattleResults(battleState: BattleState): Promise<void> {
+    for (const unit of battleState.units.values()) {
+      if (unit.type === 'character') {
+        await supabase
+          .from('characters')
+          .update({
+            current_hp: Math.max(0, unit.hp),
+            current_energy: Math.max(0, unit.energy),
+          })
+          .eq('id', unit.id);
+      } else if (unit.type === 'pet' && unit.ownerId) {
+        await supabase
+          .from('pets')
+          .update({
+            current_hp: Math.max(0, unit.hp),
+          })
+          .eq('id', unit.id);
+      }
+    }
+  }
+
   private processAction(
     battleState: BattleState,
     actor: BattleUnit,
     action: BattleAction
   ): ActionResult {
-    // Reset defending status
     actor.isDefending = false;
 
     switch (action.type) {
@@ -548,6 +605,7 @@ class BattleService {
       target = enemies[Math.floor(Math.random() * enemies.length)];
     }
 
+    // 회피 계산 (SPD 기반)
     const hit = damageCalculator.calculateHit(attacker, target, 90);
     if (!hit.hit) {
       return hit.evaded
@@ -567,7 +625,7 @@ class BattleService {
           };
     }
 
-    // Check gang-up
+    // Gang-up bonus
     const gangUpGroup = turnManager.findGangUpGroup(
       attacker.id,
       battleState.turnOrder,
@@ -664,7 +722,7 @@ class BattleService {
     battleState: BattleState
   ): Promise<BattleRewards | undefined> {
     const { data: stage } = await supabase
-      .from('stage_templates')
+      .from('admin_stages')
       .select('*')
       .eq('id', battleState.stageId)
       .single();
@@ -690,7 +748,7 @@ class BattleService {
       {
         expReward: stage.exp_reward,
         goldReward: stage.gold_reward,
-        drops: [],
+        drops: stage.drops || [],
         star_condition_2_turns: stage.star_condition_2_turns,
       },
       participants,
@@ -720,7 +778,6 @@ class BattleService {
       (u) => u.type === 'enemy' && u.isAlive
     );
 
-    // Guard against division by zero when all enemies are dead
     if (enemies.length === 0) {
       state.phase = 'victory';
       await this.saveBattleState(battleId, state);
@@ -772,10 +829,8 @@ class BattleService {
   }
 }
 
-// Export singleton instance
 export const battleService = new BattleService();
 
-// Also export individual functions for backward compatibility
 export const startBattle = battleService.startBattle.bind(battleService);
 export const submitAction = battleService.submitAction.bind(battleService);
 export const processTurn = battleService.processTurn.bind(battleService);

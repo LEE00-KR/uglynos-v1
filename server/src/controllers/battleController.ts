@@ -23,7 +23,7 @@ export const submitAction = async (req: AuthRequest, res: Response, next: NextFu
       actorId: req.characterId!,
       type: input.characterAction.type,
       targetId: input.characterAction.targetId,
-      spellId: input.characterAction.spellId,
+      skillId: input.characterAction.skillId,
       itemId: input.characterAction.itemId,
     });
 

@@ -4,8 +4,9 @@ import type {
   EquipmentInfo,
   DamageResult,
   ElementType,
+  StatusEffect,
 } from '../../types/game.js';
-import type { StatusEffect } from '../../types/game.js';
+import { calculateEvasionRate } from '../../utils/formulas.js';
 
 interface DamageOptions {
   weaponInfo?: EquipmentInfo;
@@ -39,14 +40,14 @@ export class DamageCalculator {
   };
 
   /**
-   * Main damage calculation
+   * Main damage calculation (4스탯 기반)
    */
   calculate(
     attacker: BattleUnit,
     defender: BattleUnit,
     options: DamageOptions = {}
   ): DamageResult {
-    // Step 1: Base damage (ATK)
+    // Step 1: Base damage (ATK from 4스탯)
     let baseDamage = attacker.stats.atk;
 
     // Skill damage ratio
@@ -74,7 +75,7 @@ export class DamageCalculator {
     }
     const isCritical = this.rollCritical(critChance);
 
-    // Step 5: Apply defense (critical ignores defense)
+    // Step 5: Apply defense (DEF from 4스탯, critical ignores defense)
     let finalDamage = baseDamage;
     if (!isCritical) {
       finalDamage = Math.max(1, baseDamage - defender.stats.def);
@@ -193,7 +194,7 @@ export class DamageCalculator {
   }
 
   /**
-   * Hit/Evasion check
+   * Hit/Evasion check (SPD 기반 회피율, 최대 30%)
    */
   calculateHit(
     _attacker: BattleUnit,
@@ -206,8 +207,9 @@ export class DamageCalculator {
       return { hit: false, evaded: false }; // Weapon miss
     }
 
-    // Step 2: Evasion check (AGI × 0.3 = EVA%)
-    const evasionRate = defender.stats.eva;
+    // Step 2: Evasion check (SPD 기반, 최대 30%)
+    // 공식: min(30, SPD * 0.15)
+    const evasionRate = calculateEvasionRate(defender.stats.spd);
     const evadeRoll = Math.random() * 100;
 
     if (evadeRoll < evasionRate) {
@@ -218,11 +220,11 @@ export class DamageCalculator {
   }
 
   /**
-   * Calculate heal amount
+   * Calculate heal amount (4스탯에서는 ATK 기반 또는 고정)
    */
   calculateHeal(healer: BattleUnit, healRatio: number): number {
-    // Heal based on INT stat
-    const baseHeal = healer.stats.int * (healRatio / 100);
+    // ATK 기반 힐 (int 제거)
+    const baseHeal = healer.stats.atk * (healRatio / 100);
     return Math.floor(baseHeal);
   }
 }

@@ -1,5 +1,5 @@
 import {
-  calculateDerivedStats,
+  calculateEvasionRate,
   getRequiredExp,
   calculateMonsterExp,
   getWeaponAccuracy,
@@ -7,68 +7,42 @@ import {
   getWeaponHitCount,
   getWeaponPenalty,
   getElementMultiplier,
+  generateRandomPetStats,
+  generateRandomGrowthRates,
+  calculateGrowthGroup,
+  calculateLevelUpStatIncrease,
+  calculateCatchRate,
 } from '../utils/formulas';
 import type { BaseStats } from '../types/game';
 
 describe('formulas', () => {
-  describe('calculateDerivedStats', () => {
-    it('should calculate correct HP based on VIT', () => {
-      const baseStats: BaseStats = { str: 10, agi: 10, vit: 20, con: 10, int: 10 };
-      const result = calculateDerivedStats(baseStats, 1);
-
-      // HP = 100 + vit * 10 + level * 5
-      // HP = 100 + 20 * 10 + 1 * 5 = 305
-      expect(result.maxHp).toBe(305);
+  // =====================================================
+  // 회피율 테스트 (SPD 기반, 최대 30%)
+  // =====================================================
+  describe('calculateEvasionRate', () => {
+    it('should return 0 for SPD 0', () => {
+      expect(calculateEvasionRate(0)).toBe(0);
     });
 
-    it('should calculate correct MP based on INT', () => {
-      const baseStats: BaseStats = { str: 10, agi: 10, vit: 10, con: 10, int: 20 };
-      const result = calculateDerivedStats(baseStats, 1);
-
-      // MP = 50 + int * 5 + level * 2
-      // MP = 50 + 20 * 5 + 1 * 2 = 152
-      expect(result.maxMp).toBe(152);
+    it('should calculate evasion as SPD * 0.15', () => {
+      // SPD 100 → 100 * 0.15 = 15%
+      expect(calculateEvasionRate(100)).toBe(15);
     });
 
-    it('should calculate correct ATK based on STR', () => {
-      const baseStats: BaseStats = { str: 20, agi: 10, vit: 10, con: 10, int: 10 };
-      const result = calculateDerivedStats(baseStats, 1);
-
-      // ATK = 10 + str * 2 + floor(level * 1.5)
-      // ATK = 10 + 20 * 2 + 1 = 51
-      expect(result.atk).toBe(51);
+    it('should cap evasion at 30%', () => {
+      // SPD 300 → 300 * 0.15 = 45% → capped at 30%
+      expect(calculateEvasionRate(300)).toBe(30);
     });
 
-    it('should calculate correct DEF based on CON', () => {
-      const baseStats: BaseStats = { str: 10, agi: 10, vit: 10, con: 20, int: 10 };
-      const result = calculateDerivedStats(baseStats, 1);
-
-      // DEF = 5 + con * 2 + floor(level * 0.8)
-      // DEF = 5 + 20 * 2 + 0 = 45
-      expect(result.def).toBe(45);
-    });
-
-    it('should calculate correct SPD based on AGI', () => {
-      const baseStats: BaseStats = { str: 10, agi: 20, vit: 10, con: 10, int: 10 };
-      const result = calculateDerivedStats(baseStats, 1);
-
-      // SPD = 10 + agi * 2
-      // SPD = 10 + 20 * 2 = 50
-      expect(result.spd).toBe(50);
-    });
-
-    it('should scale stats correctly with level', () => {
-      const baseStats: BaseStats = { str: 10, agi: 10, vit: 10, con: 10, int: 10 };
-      const level1 = calculateDerivedStats(baseStats, 1);
-      const level10 = calculateDerivedStats(baseStats, 10);
-
-      expect(level10.maxHp).toBeGreaterThan(level1.maxHp);
-      expect(level10.maxMp).toBeGreaterThan(level1.maxMp);
-      expect(level10.atk).toBeGreaterThan(level1.atk);
-      expect(level10.def).toBeGreaterThan(level1.def);
+    it('should return exactly 30% at SPD 200', () => {
+      // SPD 200 → 200 * 0.15 = 30%
+      expect(calculateEvasionRate(200)).toBe(30);
     });
   });
 
+  // =====================================================
+  // 경험치 테스트
+  // =====================================================
   describe('getRequiredExp', () => {
     it('should return fixed values for early levels', () => {
       expect(getRequiredExp(1)).toBe(8);
@@ -111,6 +85,9 @@ describe('formulas', () => {
     });
   });
 
+  // =====================================================
+  // 무기 테스트
+  // =====================================================
   describe('getWeaponAccuracy', () => {
     it('should return correct accuracy for each weapon type', () => {
       expect(getWeaponAccuracy('sword')).toBe(90);
@@ -154,25 +131,28 @@ describe('formulas', () => {
   });
 
   describe('getWeaponPenalty', () => {
-    it('should return correct penalties for sword', () => {
+    it('should return correct penalties for sword (4스탯: spd, def)', () => {
       const penalty = getWeaponPenalty('sword');
-      expect(penalty.agi).toBe(-10);
-      expect(penalty.con).toBe(0);
+      expect(penalty.spd).toBe(-10);
+      expect(penalty.def).toBe(0);
     });
 
     it('should return correct penalties for axe', () => {
       const penalty = getWeaponPenalty('axe');
-      expect(penalty.agi).toBe(-20);
-      expect(penalty.con).toBe(-20);
+      expect(penalty.spd).toBe(-20);
+      expect(penalty.def).toBe(-20);
     });
 
     it('should return no penalties for club', () => {
       const penalty = getWeaponPenalty('club');
-      expect(penalty.agi).toBe(0);
-      expect(penalty.con).toBe(0);
+      expect(penalty.spd).toBe(0);
+      expect(penalty.def).toBe(0);
     });
   });
 
+  // =====================================================
+  // 속성 상성 테스트
+  // =====================================================
   describe('getElementMultiplier', () => {
     it('should return 1.3x for advantaged element', () => {
       // Earth > Wind (based on actual cycle)
@@ -197,6 +177,160 @@ describe('formulas', () => {
       expect(getElementMultiplier('wind', 'fire')).toBe(1.3);
       expect(getElementMultiplier('fire', 'water')).toBe(1.3);
       expect(getElementMultiplier('water', 'earth')).toBe(1.3);
+    });
+  });
+
+  // =====================================================
+  // 4스탯 펫 생성 테스트
+  // =====================================================
+  describe('generateRandomPetStats', () => {
+    it('should generate stats within range', () => {
+      const range = {
+        hp: { min: 80, max: 120 },
+        atk: { min: 8, max: 12 },
+        def: { min: 8, max: 12 },
+        spd: { min: 8, max: 12 },
+      };
+      const bonus = { hp: 10, atk: 2, def: 2, spd: 2 };
+
+      for (let i = 0; i < 10; i++) {
+        const stats = generateRandomPetStats(range, bonus);
+
+        expect(stats.hp).toBeGreaterThanOrEqual(range.hp.min);
+        expect(stats.hp).toBeLessThanOrEqual(range.hp.max + bonus.hp);
+        expect(stats.atk).toBeGreaterThanOrEqual(range.atk.min);
+        expect(stats.atk).toBeLessThanOrEqual(range.atk.max + bonus.atk);
+        expect(stats.def).toBeGreaterThanOrEqual(range.def.min);
+        expect(stats.def).toBeLessThanOrEqual(range.def.max + bonus.def);
+        expect(stats.spd).toBeGreaterThanOrEqual(range.spd.min);
+        expect(stats.spd).toBeLessThanOrEqual(range.spd.max + bonus.spd);
+      }
+    });
+  });
+
+  describe('generateRandomGrowthRates', () => {
+    it('should generate growth rates within range', () => {
+      const range = {
+        hp: { min: 5.0, max: 10.0 },
+        atk: { min: 1.0, max: 2.0 },
+        def: { min: 1.0, max: 2.0 },
+        spd: { min: 1.0, max: 2.0 },
+      };
+
+      for (let i = 0; i < 10; i++) {
+        const rates = generateRandomGrowthRates(range);
+
+        expect(rates.hp).toBeGreaterThanOrEqual(range.hp.min);
+        expect(rates.hp).toBeLessThanOrEqual(range.hp.max);
+        expect(rates.atk).toBeGreaterThanOrEqual(range.atk.min);
+        expect(rates.atk).toBeLessThanOrEqual(range.atk.max);
+        expect(rates.def).toBeGreaterThanOrEqual(range.def.min);
+        expect(rates.def).toBeLessThanOrEqual(range.def.max);
+        expect(rates.spd).toBeGreaterThanOrEqual(range.spd.min);
+        expect(rates.spd).toBeLessThanOrEqual(range.spd.max);
+      }
+    });
+  });
+
+  // =====================================================
+  // 성장 그룹 테스트
+  // =====================================================
+  describe('calculateGrowthGroup', () => {
+    it('should return S for 95%+ stats', () => {
+      // 기준 MAX_TOTAL_STATS = 1299
+      const stats: BaseStats = { hp: 950, atk: 95, def: 95, spd: 95 }; // 1235 = ~95%
+      expect(calculateGrowthGroup(stats)).toBe('S');
+    });
+
+    it('should return D for low stats', () => {
+      const stats: BaseStats = { hp: 100, atk: 10, def: 10, spd: 10 }; // 130 = ~10%
+      expect(calculateGrowthGroup(stats)).toBe('D');
+    });
+
+    it('should use custom max stats when provided', () => {
+      const stats: BaseStats = { hp: 100, atk: 10, def: 10, spd: 10 }; // 130
+      // 130 / 130 = 100% → S
+      expect(calculateGrowthGroup(stats, 130)).toBe('S');
+    });
+  });
+
+  // =====================================================
+  // 포획률 테스트
+  // 기본 5%, HP/레벨에 따라 증가
+  // =====================================================
+  describe('calculateCatchRate', () => {
+    it('should return base 5% for high HP', () => {
+      // HP > 80% → 5%
+      expect(calculateCatchRate(0.9, 1)).toBe(5);
+      expect(calculateCatchRate(1.0, 1)).toBe(5);
+    });
+
+    it('should increase rate as HP decreases', () => {
+      // HP ≤ 80% → 10%
+      expect(calculateCatchRate(0.8, 1)).toBe(10);
+      expect(calculateCatchRate(0.6, 1)).toBe(10);
+
+      // HP ≤ 50% → 20%
+      expect(calculateCatchRate(0.5, 1)).toBe(20);
+      expect(calculateCatchRate(0.3, 1)).toBe(20);
+
+      // HP ≤ 10% → 30%
+      expect(calculateCatchRate(0.1, 1)).toBe(30);
+      expect(calculateCatchRate(0.05, 1)).toBe(30);
+    });
+
+    it('should add level bonus for catcher', () => {
+      // Level 30+ → +10%
+      expect(calculateCatchRate(0.9, 30)).toBe(5 + 10);
+
+      // Level 50+ → +20%
+      expect(calculateCatchRate(0.9, 50)).toBe(5 + 20);
+
+      // Level 80+ → +30%
+      expect(calculateCatchRate(0.9, 80)).toBe(5 + 30);
+    });
+
+    it('should combine HP and level bonuses', () => {
+      // HP ≤ 10% (30%) + Level 80 (+30%) = 60%
+      expect(calculateCatchRate(0.1, 80)).toBe(60);
+
+      // HP ≤ 50% (20%) + Level 50 (+20%) = 40%
+      expect(calculateCatchRate(0.5, 50)).toBe(40);
+    });
+
+    it('should add item bonus', () => {
+      const baseRate = calculateCatchRate(0.5, 1, 0);  // 20%
+      const withBonus = calculateCatchRate(0.5, 1, 15);  // 20% + 15%
+
+      expect(withBonus).toBe(baseRate + 15);
+    });
+
+    it('should cap at 95%', () => {
+      // HP ≤ 10% (30%) + Level 80 (+30%) + item 50% = 110% → capped at 95%
+      const rate = calculateCatchRate(0.1, 80, 50);
+      expect(rate).toBe(95);
+    });
+  });
+
+  // =====================================================
+  // 레벨업 스탯 증가 테스트
+  // =====================================================
+  describe('calculateLevelUpStatIncrease', () => {
+    it('should return at least 1', () => {
+      for (let i = 0; i < 10; i++) {
+        const increase = calculateLevelUpStatIncrease(1.0, 'D');
+        expect(increase).toBeGreaterThanOrEqual(1);
+      }
+    });
+
+    it('should scale with growth rate', () => {
+      // S그룹에서 성장률 10 vs 5 비교
+      let high = 0, low = 0;
+      for (let i = 0; i < 100; i++) {
+        high += calculateLevelUpStatIncrease(10, 'S');
+        low += calculateLevelUpStatIncrease(5, 'S');
+      }
+      expect(high).toBeGreaterThan(low);
     });
   });
 });

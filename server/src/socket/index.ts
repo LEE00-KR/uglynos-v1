@@ -16,7 +16,7 @@ interface BattleJoinData {
 }
 
 interface BattleStartData {
-  stageId: number;
+  stageId: string;  // admin_stages.id (VARCHAR)
 }
 
 // Store io instance for external access
@@ -110,8 +110,8 @@ async function handleBattleStart(_io: Server, socket: Socket, data: BattleStartD
       level: unit.level,
       hp: unit.hp,
       maxHp: unit.maxHp,
-      mp: unit.mp,
-      maxMp: unit.maxMp,
+      energy: unit.energy,
+      maxEnergy: unit.maxEnergy,
       stats: unit.stats,
       element: unit.element,
       statusEffects: unit.statusEffects,
