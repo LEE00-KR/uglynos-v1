@@ -111,9 +111,6 @@ CREATE TABLE admin_pets (
     growth_spd_min DECIMAL(4,2) NOT NULL DEFAULT 1.00,
     growth_spd_max DECIMAL(4,2) NOT NULL DEFAULT 2.00,
 
-    -- 포획률
-    capture_rate INTEGER NOT NULL DEFAULT 50,
-
     -- 총합 스탯
     total_stats INTEGER NOT NULL DEFAULT 156,
 

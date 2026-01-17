@@ -233,7 +233,6 @@ class BattleService {
         },
         statusEffects: [],
         isCapturable: monster.level === 1,  // 레벨 1만 포획 가능
-        captureRate: petTemplate.capture_rate || 50,
         isRareColor: Math.random() < 0.03,  // 3% 희귀 색상
         isAlive: true,
         isDefending: false,
@@ -280,7 +279,6 @@ class BattleService {
         },
         statusEffects: [],
         isCapturable: true,
-        captureRate: petTemplate.capture_rate || 50,
         isRareColor: Math.random() < 0.03,
         isAlive: true,
         isDefending: false,
